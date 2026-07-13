@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `@icare/drug-portal-sdk` will be documented in this file.
+All notable changes to `@icare1/drug-portal-sdk` will be documented in this file.
 
 ## [0.1.0] — 2025-01-01
 

@@ -3,7 +3,7 @@
 **TypeScript SDK** for Vietnam National Drug Portal APIs — **CSDL Dược (QĐ 522)** & **Cổng Đơn Thuốc (QĐ 228)**.
 
 ```bash
-npm install @icare/drug-portal-sdk
+npm install @icare1/drug-portal-sdk
 ```
 
 ---
@@ -21,7 +21,7 @@ npm install @icare/drug-portal-sdk
 ## Quick Start
 
 ```typescript
-import { DrugPortalClient } from '@icare/drug-portal-sdk';
+import { DrugPortalClient } from '@icare1/drug-portal-sdk';
 
 const client = new DrugPortalClient({
   environment: 'sandbox', // or 'production'

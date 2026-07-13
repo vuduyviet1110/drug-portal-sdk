@@ -1,4 +1,4 @@
-import { DrugPortalClient } from '@icare/drug-portal-sdk';
+import { DrugPortalClient } from '@icare1/drug-portal-sdk';
 
 const client = new DrugPortalClient({
   environment: 'sandbox',
