@@ -111,7 +111,11 @@ export class InventoryClient {
           if (statusCode === SUCCESS_STATUS) {
             this.logger.info(`Transaction completed successfully`, { transactionId, attempts });
           } else {
-            this.logger.warn(`Transaction ${statusCode}`, { transactionId, status: statusObj, attempts });
+            this.logger.warn(`Transaction ${statusCode}`, {
+              transactionId,
+              status: statusObj,
+              attempts,
+            });
           }
 
           return { ...result, timedOut, attempts };
