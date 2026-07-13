@@ -91,10 +91,11 @@ export class InventoryClient {
     while (attempts < POLL_MAX_ATTEMPTS) {
       attempts++;
       try {
-        const status = await this.http.get<Record<string, unknown>>(endpoint);
-        const statusCode = (status['status'] ?? status['status_code'] ?? '') as string;
+        const statusObj = await this.http.get<Record<string, unknown>>(endpoint);
+        const rawStatus = (statusObj['status'] ?? statusObj['status_code'] ?? '') as string;
+        const statusCode = rawStatus.toLowerCase();
 
-        this.logger.debug(`Poll attempt ${attempts}: status=${statusCode}`, {
+        this.logger.debug(`Poll attempt ${attempts}: status=${rawStatus}`, {
           transactionId,
           type,
         });
@@ -104,13 +105,13 @@ export class InventoryClient {
           const result = {
             transactionId,
             status: statusCode,
-            raw: status,
+            raw: statusObj,
           } as TransactionResult & { timedOut: boolean; attempts: number };
 
           if (statusCode === SUCCESS_STATUS) {
             this.logger.info(`Transaction completed successfully`, { transactionId, attempts });
           } else {
-            this.logger.warn(`Transaction ${statusCode}`, { transactionId, status, attempts });
+            this.logger.warn(`Transaction ${statusCode}`, { transactionId, status: statusObj, attempts });
           }
 
           return { ...result, timedOut, attempts };
