@@ -1,5 +1,5 @@
 import type { SDKConfig } from './types/config.js';
-import { resolveCsdlDuocBaseUrl, resolveNationalRxBaseUrl } from './types/config.js';
+import { resolveCsdlDuocBaseUrl, resolveNationalRxBaseUrl, resolvePortalApiRoot } from './types/config.js';
 import { CsdlDuocAuth } from './auth/csdl-duoc-auth.js';
 import { Qd228Auth } from './auth/qd228-auth.js';
 import { HttpClient } from './http/http-client.js';
@@ -93,7 +93,7 @@ export class DrugPortalClient {
     const portalHttp = mainHttp
       ? new HttpClient(
           {
-            baseUrl: csdlDuocBaseUrl.replace(/\/v2\/?$/, ''),
+            baseUrl: resolvePortalApiRoot(csdlDuocBaseUrl),
             logger: this.logger,
             retry: config.retry,
           },

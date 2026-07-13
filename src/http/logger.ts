@@ -36,6 +36,7 @@ export class StructuredLogger implements Logger {
     // Delegate if provided
     if (this.delegate) {
       this.delegate[level.toLowerCase() as keyof Logger]?.(message, meta);
+      return;
     }
     // Always write JSON to stdout (grep-friendly)
     const entry = {

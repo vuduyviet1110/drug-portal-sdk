@@ -21,6 +21,7 @@ export class CsdlDuocAuth implements AuthProvider {
   private readonly tokenTtlHours: number;
   private readonly onTokenChange?: (token: string, expiresAt: Date) => void;
   private state: AuthState | null = null;
+  private loginPromise: Promise<void> | null = null;
 
   constructor(opts: {
     config: CsdlDuocConfig;
@@ -72,48 +73,66 @@ export class CsdlDuocAuth implements AuthProvider {
   private async login(force = false): Promise<void> {
     if (!force && this.isTokenValid()) return;
 
-    this.logger.info('Authenticating with CSDL Dược', { baseUrl: this.baseUrl });
+    if (this.loginPromise) {
+      return this.loginPromise;
+    }
 
-    const passwordB64 = Buffer.from(this.config.password, 'utf8').toString('base64');
-    const body = {
-      username: this.config.username,
-      password: passwordB64,
-    };
+    this.loginPromise = (async () => {
+      this.logger.info('Authenticating with CSDL Dược', { baseUrl: this.baseUrl });
 
-    const url = `${this.baseUrl}${CSDL_DUOC_ENDPOINTS.AUTH_LOGIN}`;
+      const passwordB64 = Buffer.from(this.config.password, 'utf8').toString('base64');
+      const body = {
+        username: this.config.username,
+        password: passwordB64,
+      };
+
+      const url = `${this.baseUrl}${CSDL_DUOC_ENDPOINTS.AUTH_LOGIN}`;
+
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(body).toString(),
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(`CSDL Dược login failed: HTTP ${resp.status} — ${text.slice(0, 200)}`);
+        }
+
+        const data = (await resp.json()) as AuthLoginResponse;
+        const token = data.access_token ?? data.token;
+        if (!token) {
+          throw new Error('CSDL Dược login response missing access_token / token');
+        }
+
+        const expiresInHours = data.expires_in
+          ? data.expires_in / 3600
+          : this.tokenTtlHours;
+        const expiresAt = new Date(Date.now() + expiresInHours * 3600_000);
+
+        this.state = { accessToken: token, expiresAt };
+        this.logger.info('CSDL Dược authenticated', { expiresAt: expiresAt.toISOString() });
+
+        if (this.onTokenChange) {
+          try {
+            this.onTokenChange(token, expiresAt);
+          } catch (callbackErr) {
+            this.logger.warn('Error in onTokenChange callback', {
+              error: (callbackErr as Error).message,
+            });
+          }
+        }
+      } catch (err) {
+        this.logger.error('CSDL Dược login error', { error: (err as Error).message });
+        throw err;
+      }
+    })();
 
     try {
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(body).toString(),
-      });
-
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(`CSDL Dược login failed: HTTP ${resp.status} — ${text.slice(0, 200)}`);
-      }
-
-      const data = (await resp.json()) as AuthLoginResponse;
-      const token = data.access_token ?? data.token;
-      if (!token) {
-        throw new Error('CSDL Dược login response missing access_token / token');
-      }
-
-      const expiresInHours = data.expires_in
-        ? data.expires_in / 3600
-        : this.tokenTtlHours;
-      const expiresAt = new Date(Date.now() + expiresInHours * 3600_000);
-
-      this.state = { accessToken: token, expiresAt };
-      this.logger.info('CSDL Dược authenticated', { expiresAt: expiresAt.toISOString() });
-
-      if (this.onTokenChange) {
-        this.onTokenChange(token, expiresAt);
-      }
-    } catch (err) {
-      this.logger.error('CSDL Dược login error', { error: (err as Error).message });
-      throw err;
+      await this.loginPromise;
+    } finally {
+      this.loginPromise = null;
     }
   }
 
