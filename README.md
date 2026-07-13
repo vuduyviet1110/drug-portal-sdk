@@ -8,6 +8,14 @@ npm install @icare1/drug-portal-sdk
 
 ---
 
+## Live Demo & Test App
+
+We built a professional Next.js + Tailwind CSS clinical dashboard test application demonstrating this SDK integration:
+- 🔗 **Vercel Test App Link**: [https://drug-portal-test-app-kohl.vercel.app/](https://drug-portal-test-app-kohl.vercel.app/)
+- 🐙 **GitHub Repository**: [https://github.com/vuduyviet1110/drug-portal-test-app](https://github.com/vuduyviet1110/drug-portal-test-app)
+
+---
+
 ## Features
 
 - ✅ **CSDL Dược QĐ 522**: OAuth login, auto-refresh token, drug catalog search, master data lookups, stock-in/out/taking with polling
