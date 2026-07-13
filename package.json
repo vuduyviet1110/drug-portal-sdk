@@ -15,7 +15,7 @@
   "author": "iCare Health",
   "repository": {
     "type": "git",
-    "url": "https://github.com/iCare-Health/drug-portal-sdk"
+    "url": "https://github.com/vuduyviet1110/drug-portal-sdk"
   },
   "type": "module",
   "main": "./dist/index.cjs",
