@@ -102,25 +102,51 @@ function mapPrescription(maDonThuoc: string, data: Record<string, unknown>): Pre
     Record<string, unknown>
   >;
 
+  let diagnosisStr = '';
+  const rawDiagnosis = data['chan_doan'];
+  if (Array.isArray(rawDiagnosis)) {
+    diagnosisStr = rawDiagnosis
+      .map((c) => {
+        if (typeof c === 'object' && c !== null) {
+          const ten = (c as Record<string, unknown>)['ten_chan_doan'];
+          const ma = (c as Record<string, unknown>)['ma_chan_doan'];
+          return ten || ma || '';
+        }
+        return String(c);
+      })
+      .filter(Boolean)
+      .join(', ');
+  } else if (rawDiagnosis) {
+    diagnosisStr = String(rawDiagnosis);
+  }
+
   return {
     maDonThuoc,
     patientBirthDate: data['ngay_sinh_benh_nhan'] as string | undefined,
+    patientName: data['ho_ten_benh_nhan'] as string | undefined,
     patientHealthId: data['ma_dinh_danh_y_te'] as string | undefined,
-    diagnosis: data['chan_doan'] as string | undefined,
+    diagnosis: diagnosisStr || undefined,
     doctorName: data['ten_bac_si'] as string | undefined,
-    facilityName: data['ten_co_so_kham'] as string | undefined,
-    items: rxItems.map((item) => ({
-      drugCode: (item['ma_thuoc'] ?? item['drug_code'] ?? item['ma_thuoc_qg']) as
-        string | undefined,
-      drugName: (item['ten_thuoc'] ?? item['drug_name'] ?? item['name']) as string | undefined,
-      unitName: (item['don_vi'] ?? item['unit_name']) as string | undefined,
-      prescribedQuantity: (item['so_luong_to'] ??
-        item['prescribed_quantity'] ??
-        item['quantity']) as number | undefined,
-      usageInstruction: (item['cach_dung'] ?? item['usage_instruction']) as string | undefined,
-      price: item['don_gia'] as number | undefined,
-      raw: item,
-    })),
+    facilityName: (data['ten_co_so_kham_chua_benh'] ?? data['ten_co_so_kham']) as
+      string | undefined,
+    items: rxItems.map((item) => {
+      const rawQty =
+        item['so_luong'] ?? item['so_luong_to'] ?? item['prescribed_quantity'] ?? item['quantity'];
+      const parsedQty = rawQty !== undefined && rawQty !== null ? Number(rawQty) : undefined;
+
+      return {
+        drugCode: (item['ma_thuoc'] ?? item['drug_code'] ?? item['ma_thuoc_qg']) as
+          string | undefined,
+        drugName: (item['ten_thuoc'] ?? item['drug_name'] ?? item['name'] ?? item['biet_duoc']) as
+          string | undefined,
+        unitName: (item['don_vi_tinh'] ?? item['don_vi'] ?? item['unit_name']) as
+          string | undefined,
+        prescribedQuantity: parsedQty && !isNaN(parsedQty) ? parsedQty : undefined,
+        usageInstruction: (item['cach_dung'] ?? item['usage_instruction']) as string | undefined,
+        price: item['don_gia'] as number | undefined,
+        raw: item,
+      };
+    }),
     raw: data,
   };
 }

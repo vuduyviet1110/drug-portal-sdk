@@ -22,6 +22,8 @@ export interface Prescription {
   maDonThuoc: string;
   /** Patient birth date */
   patientBirthDate?: string;
+  /** Patient name (ho_ten_benh_nhan) */
+  patientName?: string;
   /** Patient health ID (ma_dinh_danh_y_te) */
   patientHealthId?: string;
   /** Diagnosis (chan_doan) */
