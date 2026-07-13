@@ -73,7 +73,7 @@ export class PrescriptionClient {
         lastError = err as Error;
 
         if (err instanceof Error && 'status' in err) {
-          status = (err as any).status ?? 0;
+          status = (err as { status?: number }).status ?? 0;
         }
 
         if (attempt < QD228_MAX_RETRIES) {
