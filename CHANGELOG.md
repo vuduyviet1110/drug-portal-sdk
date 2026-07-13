@@ -2,11 +2,12 @@
 
 All notable changes to `@icare1/drug-portal-sdk` will be documented in this file.
 
-## [0.1.4] — 2026-07-13
+## [0.1.5] — 2026-07-13
 
 ### Fixed
 
-- Align CSDL Dược `searchPos` API request payload structure with Odoo Odoo integration service (`filter`, `skipCount`, `maxResultCount` instead of `keyword`, `page`, `pageSize`) to resolve search term filtering issues.
+- Align CSDL Dược `searchPos` API request payload structure with Odoo integration service (`filter`, `skipCount`, `maxResultCount` instead of `keyword`, `page`, `pageSize`) to resolve search term filtering issues.
+- Map additional National Prescription Portal (QĐ 228) lookup fields correctly including `patientName`, `facilityName`, `unitName`, `prescribedQuantity`, and clean up `diagnosis` joining.
 
 ## [0.1.3] — 2026-07-13
 
