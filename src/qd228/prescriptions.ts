@@ -98,7 +98,9 @@ export class PrescriptionClient {
 // ─── Response parser ─────────────────────────────────────────────
 
 function mapPrescription(maDonThuoc: string, data: Record<string, unknown>): Prescription {
-  const rxItems = (data['thong_tin_don_thuoc'] ?? data['items'] ?? []) as Array<Record<string, unknown>>;
+  const rxItems = (data['thong_tin_don_thuoc'] ?? data['items'] ?? []) as Array<
+    Record<string, unknown>
+  >;
 
   return {
     maDonThuoc,
@@ -108,11 +110,13 @@ function mapPrescription(maDonThuoc: string, data: Record<string, unknown>): Pre
     doctorName: data['ten_bac_si'] as string | undefined,
     facilityName: data['ten_co_so_kham'] as string | undefined,
     items: rxItems.map((item) => ({
-      drugCode: (item['ma_thuoc'] ?? item['drug_code'] ?? item['ma_thuoc_qg']) as string | undefined,
+      drugCode: (item['ma_thuoc'] ?? item['drug_code'] ?? item['ma_thuoc_qg']) as
+        string | undefined,
       drugName: (item['ten_thuoc'] ?? item['drug_name'] ?? item['name']) as string | undefined,
       unitName: (item['don_vi'] ?? item['unit_name']) as string | undefined,
-      prescribedQuantity:
-        (item['so_luong_to'] ?? item['prescribed_quantity'] ?? item['quantity']) as number | undefined,
+      prescribedQuantity: (item['so_luong_to'] ??
+        item['prescribed_quantity'] ??
+        item['quantity']) as number | undefined,
       usageInstruction: (item['cach_dung'] ?? item['usage_instruction']) as string | undefined,
       price: item['don_gia'] as number | undefined,
       raw: item,
@@ -123,9 +127,7 @@ function mapPrescription(maDonThuoc: string, data: Record<string, unknown>): Pre
 
 // ─── Payload builder ─────────────────────────────────────────────
 
-function buildPrescriptionUpdatePayload(
-  opts: PrescriptionUpdateOptions,
-): Record<string, unknown> {
+function buildPrescriptionUpdatePayload(opts: PrescriptionUpdateOptions): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     ma_don_thuoc: opts.maDonThuoc,
     thong_tin_thuoc: opts.items.map((item) => ({

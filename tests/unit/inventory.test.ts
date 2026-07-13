@@ -45,9 +45,7 @@ describe('Inventory — stock-out', () => {
 
   it('submits stock-out and polls until completed', async () => {
     const result = await client.csdlDuoc.inventory.stockOut({
-      items: [
-        { drugId: 'DRUG-001', unitId: 'U-001', quantity: 50 },
-      ],
+      items: [{ drugId: 'DRUG-001', unitId: 'U-001', quantity: 50 }],
       reason: 'sale-retail',
     });
 

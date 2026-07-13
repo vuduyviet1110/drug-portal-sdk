@@ -27,21 +27,15 @@ describe('resolveCsdlDuocBaseUrl', () => {
 
 describe('resolvePortalApiRoot', () => {
   it('strips /v2 suffix', () => {
-    expect(resolvePortalApiRoot('https://api.example.com/v2')).toBe(
-      'https://api.example.com',
-    );
+    expect(resolvePortalApiRoot('https://api.example.com/v2')).toBe('https://api.example.com');
   });
 
   it('strips /v2/ with trailing slash', () => {
-    expect(resolvePortalApiRoot('https://api.example.com/v2/')).toBe(
-      'https://api.example.com',
-    );
+    expect(resolvePortalApiRoot('https://api.example.com/v2/')).toBe('https://api.example.com');
   });
 
   it('leaves URLs without /v2 unchanged', () => {
-    expect(resolvePortalApiRoot('https://api.example.com')).toBe(
-      'https://api.example.com',
-    );
+    expect(resolvePortalApiRoot('https://api.example.com')).toBe('https://api.example.com');
   });
 });
 

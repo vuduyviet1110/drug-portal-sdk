@@ -19,12 +19,7 @@ export interface StockItem {
 // ─── Stock-in ────────────────────────────────────────────────────
 
 export type StockInReason =
-  | 'supplier'
-  | 'return'
-  | 'transfer-in'
-  | 'manufactured'
-  | 'opening-balance'
-  | 'imported';
+  'supplier' | 'return' | 'transfer-in' | 'manufactured' | 'opening-balance' | 'imported';
 
 export interface StockInOptions {
   items: StockItem[];
@@ -43,12 +38,7 @@ export interface StockInOptions {
 
 // ─── Stock-out ───────────────────────────────────────────────────
 
-export type StockOutReason =
-  | 'sale-retail'
-  | 'return'
-  | 'transfer-out'
-  | 'destroy'
-  | 'other';
+export type StockOutReason = 'sale-retail' | 'return' | 'transfer-out' | 'destroy' | 'other';
 
 export interface StockOutOptions {
   items: StockItem[];

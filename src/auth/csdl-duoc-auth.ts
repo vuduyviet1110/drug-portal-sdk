@@ -2,7 +2,11 @@ import type { AuthProvider } from '../http/http-client.js';
 import type { CsdlDuocConfig } from '../types/config.js';
 import type { Logger } from '../http/logger.js';
 import type { AuthState, AuthLoginResponse } from '../types/auth.js';
-import { CSDL_DUOC_ENDPOINTS, DEFAULT_TOKEN_TTL_HOURS, TOKEN_REFRESH_MINUTES } from '../constants.js';
+import {
+  CSDL_DUOC_ENDPOINTS,
+  DEFAULT_TOKEN_TTL_HOURS,
+  TOKEN_REFRESH_MINUTES,
+} from '../constants.js';
 
 /**
  * CSDL Dược (QĐ 522) authentication manager.
@@ -106,9 +110,7 @@ export class CsdlDuocAuth implements AuthProvider {
           throw new Error('CSDL Dược login response missing access_token / token');
         }
 
-        const expiresInHours = data.expires_in
-          ? data.expires_in / 3600
-          : this.tokenTtlHours;
+        const expiresInHours = data.expires_in ? data.expires_in / 3600 : this.tokenTtlHours;
         const expiresAt = new Date(Date.now() + expiresInHours * 3600_000);
 
         this.state = { accessToken: token, expiresAt };

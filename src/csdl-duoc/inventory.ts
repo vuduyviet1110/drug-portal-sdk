@@ -53,11 +53,7 @@ export class InventoryClient {
    * POST /transactions/stock-in → returns transaction_id → auto-polls until terminal.
    */
   async stockIn(opts: StockInOptions): Promise<TransactionResult> {
-    const txId = await this.postTransaction(
-      CSDL_DUOC_ENDPOINTS.STOCK_IN,
-      opts,
-      'stock-in',
-    );
+    const txId = await this.postTransaction(CSDL_DUOC_ENDPOINTS.STOCK_IN, opts, 'stock-in');
     return this.pollTransaction('stock-in', txId);
   }
 
@@ -67,11 +63,7 @@ export class InventoryClient {
    * POST /transactions/stock-out → returns transaction_id → auto-polls until terminal.
    */
   async stockOut(opts: StockOutOptions): Promise<TransactionResult> {
-    const txId = await this.postTransaction(
-      CSDL_DUOC_ENDPOINTS.STOCK_OUT,
-      opts,
-      'stock-out',
-    );
+    const txId = await this.postTransaction(CSDL_DUOC_ENDPOINTS.STOCK_OUT, opts, 'stock-out');
     return this.pollTransaction('stock-out', txId);
   }
 
@@ -81,11 +73,7 @@ export class InventoryClient {
    * POST /transactions/stock-taking → returns transaction_id → auto-polls until terminal.
    */
   async stockTaking(opts: StockTakingOptions): Promise<TransactionResult> {
-    const txId = await this.postTransaction(
-      CSDL_DUOC_ENDPOINTS.STOCK_TAKING,
-      opts,
-      'stock-taking',
-    );
+    const txId = await this.postTransaction(CSDL_DUOC_ENDPOINTS.STOCK_TAKING, opts, 'stock-taking');
     return this.pollTransaction('stock-taking', txId);
   }
 
@@ -95,10 +83,7 @@ export class InventoryClient {
    * GET /transactions/{type}/{id}/status
    * Ported from `poll_until_terminal()` in helpers/async_polling.py.
    */
-  async pollTransaction(
-    type: TransactionType,
-    transactionId: string,
-  ): Promise<TransactionResult> {
+  async pollTransaction(type: TransactionType, transactionId: string): Promise<TransactionResult> {
     const endpoint = `/transactions/${type}/${transactionId}/status`;
     let attempts = 0;
     let errorRetries = 0;
@@ -114,7 +99,7 @@ export class InventoryClient {
           type,
         });
 
-        if (TERMINAL_STATUSES.includes(statusCode as typeof TERMINAL_STATUSES[number])) {
+        if (TERMINAL_STATUSES.includes(statusCode as (typeof TERMINAL_STATUSES)[number])) {
           const timedOut = false;
           const result = {
             transactionId,
@@ -185,7 +170,7 @@ export class InventoryClient {
   ): Record<string, unknown> {
     const items = 'items' in opts ? opts.items.map(mapStockItem) : [];
     const reason =
-      (type === 'stock-in' || type === 'stock-out')
+      type === 'stock-in' || type === 'stock-out'
         ? mapReason((opts as StockInOptions | StockOutOptions).reason as string, type)
         : undefined;
 
@@ -202,7 +187,8 @@ export class InventoryClient {
       payload['warehouse_code'] = this.warehouseCode;
     }
     if (reason) payload['reason'] = reason;
-    if ('referenceNumber' in opts && opts.referenceNumber) payload['reference_number'] = opts.referenceNumber;
+    if ('referenceNumber' in opts && opts.referenceNumber)
+      payload['reference_number'] = opts.referenceNumber;
     if ('note' in opts && opts.note) payload['note'] = opts.note;
 
     // Stock-in: reason-specific fields
@@ -245,13 +231,17 @@ export class InventoryClient {
  *
  * Maps internal reason strings to QĐ 522 API reason codes.
  */
-function mapReason(
-  reason: string,
-  type: 'stock-in' | 'stock-out',
-): string {
+function mapReason(reason: string, type: 'stock-in' | 'stock-out'): string {
   // Validate reason against allowed values
   if (type === 'stock-in') {
-    const allowed = ['supplier', 'return', 'transfer-in', 'manufactured', 'opening-balance', 'imported'];
+    const allowed = [
+      'supplier',
+      'return',
+      'transfer-in',
+      'manufactured',
+      'opening-balance',
+      'imported',
+    ];
     if (!allowed.includes(reason)) {
       throw new Error(`Invalid stock-in reason: ${reason}. Must be one of: ${allowed.join(', ')}`);
     }

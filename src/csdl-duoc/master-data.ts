@@ -46,11 +46,7 @@ export class MasterDataClient {
     keyword?: string,
     opts: { page?: number; pageSize?: number } = {},
   ): Promise<MasterDrugGroup[]> {
-    return this.fetchList<MasterDrugGroup>(
-      CSDL_DUOC_ENDPOINTS.MASTER_DRUG_GROUPS,
-      keyword,
-      opts,
-    );
+    return this.fetchList<MasterDrugGroup>(CSDL_DUOC_ENDPOINTS.MASTER_DRUG_GROUPS, keyword, opts);
   }
 
   async getManufacturers(

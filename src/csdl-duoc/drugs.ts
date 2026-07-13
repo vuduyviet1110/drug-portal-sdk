@@ -31,10 +31,7 @@ export class DrugClient {
    * Unified drug search — POS portal first, fallback to master catalog.
    * Ported from `CsdlDuocService.search_drugs_for_wizard()`.
    */
-  async search(
-    keyword: string,
-    opts: DrugSearchOptions = {},
-  ): Promise<DrugSearchResult> {
+  async search(keyword: string, opts: DrugSearchOptions = {}): Promise<DrugSearchResult> {
     const { page = 1, pageSize = 20, source = 'auto' } = opts;
 
     if (source === 'pos' || source === 'auto') {
@@ -149,16 +146,13 @@ function mapDrugDetail(data: Record<string, unknown>): DrugDetail {
   const basicPkg = packagings.find((p) => p.isBasicUnit === true) ?? packagings[0];
   const retailPkg = packagings.find((p) => p.isBasicUnit !== true) ?? basicPkg;
 
-  const conversionRate =
-    retailPkg?.conversionRateToBase ?? retailPkg?.quantity ?? 1.0;
+  const conversionRate = retailPkg?.conversionRateToBase ?? retailPkg?.quantity ?? 1.0;
 
-  const gtin =
-    (data['gtin'] as string | undefined) ??
-    basicPkg?.gtin ??
-    retailPkg?.gtin;
+  const gtin = (data['gtin'] as string | undefined) ?? basicPkg?.gtin ?? retailPkg?.gtin;
 
   const ingredients = (data['active_ingredient_list'] ?? []) as Array<Record<string, unknown>>;
-  const activePharmaceuticalIngredient = data['active_pharmaceutical_ingredient'] as string | undefined;
+  const activePharmaceuticalIngredient = data['active_pharmaceutical_ingredient'] as
+    string | undefined;
 
   const routes = (data['routes'] ?? []) as Array<Record<string, unknown>>;
   const route = routes[0];
@@ -179,9 +173,7 @@ function mapDrugDetail(data: Record<string, unknown>): DrugDetail {
     approvalDate: data['approval_date'] as string | undefined,
     expiryDate: data['expiry_date'] as string | undefined,
     isPrescriptionDrug: data['la_thuoc_ke_don'] as boolean | undefined,
-    route: route
-      ? { id: route['id'] as string, name: route['name'] as string }
-      : undefined,
+    route: route ? { id: route['id'] as string, name: route['name'] as string } : undefined,
     manufacturer: manufacturer
       ? {
           id: manufacturer['id'] as string | undefined,

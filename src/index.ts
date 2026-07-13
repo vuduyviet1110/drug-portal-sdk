@@ -1,5 +1,9 @@
 import type { SDKConfig } from './types/config.js';
-import { resolveCsdlDuocBaseUrl, resolveNationalRxBaseUrl, resolvePortalApiRoot } from './types/config.js';
+import {
+  resolveCsdlDuocBaseUrl,
+  resolveNationalRxBaseUrl,
+  resolvePortalApiRoot,
+} from './types/config.js';
 import { CsdlDuocAuth } from './auth/csdl-duoc-auth.js';
 import { Qd228Auth } from './auth/qd228-auth.js';
 import { HttpClient } from './http/http-client.js';
@@ -9,14 +13,7 @@ import { CsdlDuocClient } from './csdl-duoc/index.js';
 import { Qd228Client } from './qd228/index.js';
 import { DrugPortalError } from './http/http-client.js';
 
-export {
-  DrugPortalError,
-  CsdlDuocAuth,
-  Qd228Auth,
-  StructuredLogger,
-  CsdlDuocClient,
-  Qd228Client,
-};
+export { DrugPortalError, CsdlDuocAuth, Qd228Auth, StructuredLogger, CsdlDuocClient, Qd228Client };
 
 // Re-export all types
 export type * from './types/config.js';
@@ -101,16 +98,10 @@ export class DrugPortalClient {
         )
       : undefined;
 
-    this.csdlDuoc = new CsdlDuocClient(
-      mainHttp!,
-      portalHttp!,
-      this.logger,
-      csdlDuocAuth!,
-      {
-        storeId: config.csdlDuoc?.storeId,
-        warehouseCode: config.csdlDuoc?.warehouseCode,
-      },
-    );
+    this.csdlDuoc = new CsdlDuocClient(mainHttp!, portalHttp!, this.logger, csdlDuocAuth!, {
+      storeId: config.csdlDuoc?.storeId,
+      warehouseCode: config.csdlDuoc?.warehouseCode,
+    });
 
     // ─── QĐ 228 (Cổng Đơn Thuốc) ──────────────────────────────────
 

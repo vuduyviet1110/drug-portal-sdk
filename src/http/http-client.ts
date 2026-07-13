@@ -190,7 +190,9 @@ export class HttpClient {
         }
 
         throw new DrugPortalError(
-          isAbort ? `Request timeout after ${timeoutMs}ms` : `Network error: ${(err as Error).message}`,
+          isAbort
+            ? `Request timeout after ${timeoutMs}ms`
+            : `Network error: ${(err as Error).message}`,
           { traceId },
         );
       }
@@ -203,7 +205,10 @@ export class HttpClient {
 
   async get<T = unknown>(
     path: string,
-    opts?: { headers?: Record<string, string>; queryParams?: Record<string, string | number | undefined> },
+    opts?: {
+      headers?: Record<string, string>;
+      queryParams?: Record<string, string | number | undefined>;
+    },
   ): Promise<T> {
     return this.request<T>(path, { method: 'GET', ...opts });
   }
