@@ -2,6 +2,15 @@
 
 All notable changes to `@icare1/drug-portal-sdk` will be documented in this file.
 
+## [0.1.1] — 2026-07-13
+
+### Fixed
+
+- Support flat API response structure with `items` and `totalCount` directly at the root in POS drug search response.
+- Fix race condition during concurrent CSDL Dược logins by introducing a promise lock.
+- Wrap `onTokenChange` callback execution in try/catch to isolate external database storage errors.
+- Prevent duplicate logging to stdout when a custom delegate logger is configured.
+
 ## [0.1.0] — 2025-01-01
 
 ### Added
