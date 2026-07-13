@@ -58,10 +58,19 @@ export class DrugClient {
     opts: { page?: number; pageSize?: number } = {},
   ): Promise<DrugSearchResult> {
     const { page = 1, pageSize = 20 } = opts;
+    const skipCount = Math.max(0, (page - 1) * pageSize);
+    const nowMs = Date.now();
+
     const body = {
-      keyword,
-      page: page,
-      pageSize: pageSize,
+      filter: keyword || '',
+      isShowAdvanceSearch: false,
+      onSearchBeginning: nowMs,
+      isActived: null,
+      type: 1,
+      skipCount,
+      maxResultCount: pageSize,
+      sorting: '',
+      version: nowMs,
     };
 
     const data = await this.portalHttp.post<Record<string, unknown>>(
