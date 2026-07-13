@@ -97,7 +97,7 @@ export class DrugClient {
 
 function parsePosResponse(data: Record<string, unknown>): DrugSearchResult {
   // Port of MasterDataMapper.parse_pos_search_response()
-  // POS response shape: { result: { items: [...], total: N } } or { data: [...] }
+  // POS response shape: { result: { items: [...], total: N } } or { items: [...], totalCount: N } or { data: [...] }
   let rawItems: Array<Record<string, unknown>> = [];
   let total = 0;
 
@@ -105,6 +105,9 @@ function parsePosResponse(data: Record<string, unknown>): DrugSearchResult {
   if (result && typeof result === 'object') {
     rawItems = (result['items'] as Array<Record<string, unknown>>) ?? [];
     total = (result['total'] as number) ?? rawItems.length;
+  } else if (Array.isArray(data['items'])) {
+    rawItems = data['items'] as Array<Record<string, unknown>>;
+    total = (data['totalCount'] ?? data['total'] ?? rawItems.length) as number;
   } else if (Array.isArray(data['data'])) {
     rawItems = data['data'] as Array<Record<string, unknown>>;
     total = rawItems.length;
