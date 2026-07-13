@@ -227,7 +227,9 @@ export class HttpClient {
     path: string,
     queryParams?: Record<string, string | number | undefined>,
   ): string {
-    const url = new URL(path, this.baseUrl);
+    const base = this.baseUrl.replace(/\/+$/, '');
+    const cleanPath = path.replace(/^\/+/, '');
+    const url = new URL(`${base}/${cleanPath}`);
     if (queryParams) {
       for (const [key, value] of Object.entries(queryParams)) {
         if (value !== undefined && value !== null) {

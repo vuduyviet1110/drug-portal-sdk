@@ -2,6 +2,12 @@
 
 All notable changes to `@icare1/drug-portal-sdk` will be documented in this file.
 
+## [0.1.3] — 2026-07-13
+
+### Fixed
+
+- Fix URL path suffix resolution (such as `/v2`) when joining absolute paths in `HttpClient.buildUrl`.
+
 ## [0.1.1] — 2026-07-13
 
 ### Fixed
