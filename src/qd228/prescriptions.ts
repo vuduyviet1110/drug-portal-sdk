@@ -6,6 +6,7 @@ import type {
 } from '../types/prescriptions.js';
 import type { Logger } from '../http/logger.js';
 import { NATIONAL_RX_ENDPOINTS, QD228_RETRY_DELAY_MS, QD228_MAX_RETRIES } from '../constants.js';
+import { PrescriptionSchema } from '../types/schemas.js';
 
 /**
  * QĐ 228 (Cổng Đơn Thuốc Quốc Gia) prescription operations.
@@ -98,12 +99,15 @@ export class PrescriptionClient {
 // ─── Response parser ─────────────────────────────────────────────
 
 function mapPrescription(maDonThuoc: string, data: Record<string, unknown>): Prescription {
-  const rxItems = (data['thong_tin_don_thuoc'] ?? data['items'] ?? []) as Array<
+  const parsed = PrescriptionSchema.safeParse(data);
+  const rxData = parsed.success ? parsed.data : ({} as any);
+
+  const rxItems = (rxData.thong_tin_don_thuoc ?? rxData.items ?? data['thong_tin_don_thuoc'] ?? data['items'] ?? []) as Array<
     Record<string, unknown>
   >;
 
   let diagnosisStr = '';
-  const rawDiagnosis = data['chan_doan'];
+  const rawDiagnosis = rxData.chan_doan ?? data['chan_doan'];
   if (Array.isArray(rawDiagnosis)) {
     diagnosisStr = rawDiagnosis
       .map((c) => {
@@ -122,12 +126,12 @@ function mapPrescription(maDonThuoc: string, data: Record<string, unknown>): Pre
 
   return {
     maDonThuoc,
-    patientBirthDate: data['ngay_sinh_benh_nhan'] as string | undefined,
-    patientName: data['ho_ten_benh_nhan'] as string | undefined,
-    patientHealthId: data['ma_dinh_danh_y_te'] as string | undefined,
+    patientBirthDate: (rxData.ngay_sinh_benh_nhan ?? data['ngay_sinh_benh_nhan']) as string | undefined,
+    patientName: (rxData.ho_ten_benh_nhan ?? data['ho_ten_benh_nhan']) as string | undefined,
+    patientHealthId: (rxData.ma_dinh_danh_y_te ?? data['ma_dinh_danh_y_te']) as string | undefined,
     diagnosis: diagnosisStr || undefined,
-    doctorName: data['ten_bac_si'] as string | undefined,
-    facilityName: (data['ten_co_so_kham_chua_benh'] ?? data['ten_co_so_kham']) as
+    doctorName: (rxData.ten_bac_si ?? data['ten_bac_si']) as string | undefined,
+    facilityName: (rxData.ten_co_so_kham_chua_benh ?? rxData.ten_co_so_kham ?? data['ten_co_so_kham_chua_benh'] ?? data['ten_co_so_kham']) as
       string | undefined,
     items: rxItems.map((item) => {
       const rawQty =

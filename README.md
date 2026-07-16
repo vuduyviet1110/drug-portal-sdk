@@ -124,7 +124,73 @@ new DrugPortalClient({
   onTokenChange?: (token, expiresAt) => void,
   cachedToken?: string,
   cachedTokenExpiresAt?: Date,
+  proxyUrl?: 'http://username:password@ip:port', // Optional proxy
 });
+```
+
+---
+
+## Advanced Features
+
+### 1. Bypassing Cloud Firewall Restrictions (Proxy Support)
+Vietnamese regulatory servers (`api-sandbox.csdlduoc.com.vn`, `donthuocquocgia.vn`) often block foreign cloud IP addresses (such as Vercel, AWS, GCP). You can easily route your requests through a Vietnamese proxy server by passing the `proxyUrl` option:
+
+```typescript
+const client = new DrugPortalClient({
+  environment: 'production',
+  proxyUrl: 'http://username:password@vietnam-proxy-ip:port', // Optional Vietnamese proxy
+  csdlDuoc: { ... },
+});
+```
+
+### 2. Token Caching & Persistence Store
+To prevent calling `POST /auth/login` too frequently (which triggers rate-limits), it is recommended to cache and restore the authentication tokens using one of our built-in `TokenStore` adapters:
+
+```typescript
+import { DrugPortalClient, FileTokenStore, RedisTokenStore } from '@icare1/drug-portal-sdk';
+import { createClient } from 'redis';
+
+// File-system Cache Store (caches to .token_cache.json by default)
+const fileStore = new FileTokenStore();
+
+// Or Redis Cache Store
+const redisClient = createClient();
+const redisStore = new RedisTokenStore(redisClient);
+
+const client = new DrugPortalClient({
+  environment: 'production',
+  csdlDuoc: { ... },
+  
+  // Restore cached token on startup
+  ...(await fileStore.get('csdl_duoc')),
+
+  // Save token changes
+  onTokenChange: async (token, expiresAt) => {
+    await fileStore.set('csdl_duoc', { accessToken: token, expiresAt });
+  }
+});
+```
+
+### 3. Unit Testing with Mock Client
+To write unit and integration tests for your own application without hitting live API endpoints, you can import and use `MockDrugPortalClient`:
+
+```typescript
+import { MockDrugPortalClient } from '@icare1/drug-portal-sdk';
+
+const mockClient = new MockDrugPortalClient();
+
+// Configure custom mock data
+mockClient.mockDrugs.push({
+  id: '99',
+  name: 'Custom Mock Medicine 500mg',
+  registrationNumber: 'VD-999-24',
+  baseUnit: 'Viên',
+  source: 'pos',
+});
+
+// Mock lookup will search the in-memory mock store
+const drugs = await mockClient.csdlDuoc.drugs.search('Custom Mock');
+console.log(drugs.items[0].name); // 'Custom Mock Medicine 500mg'
 ```
 
 ---

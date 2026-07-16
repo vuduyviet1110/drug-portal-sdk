@@ -66,6 +66,8 @@
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
   },
-  "peerDependencies": {},
-  "dependencies": {}
+  "dependencies": {
+    "undici": "^8.7.0",
+    "zod": "^4.4.3"
+  }
 }

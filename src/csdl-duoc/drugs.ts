@@ -8,6 +8,7 @@ import type {
 } from '../types/drugs.js';
 import type { Logger } from '../http/logger.js';
 import { CSDL_DUOC_ENDPOINTS } from '../constants.js';
+import { DrugPosItemSchema, DrugMasterItemSchema, DrugDetailSchema } from '../types/schemas.js';
 
 /**
  * Drug catalog and search operations.
@@ -122,14 +123,18 @@ function parsePosResponse(data: Record<string, unknown>): DrugSearchResult {
     total = rawItems.length;
   }
 
-  const items: DrugSearchItem[] = rawItems.map((item) => ({
-    id: (item['drugId'] ?? item['id'] ?? '') as string,
-    name: (item['productName'] ?? item['tenThuoc'] ?? item['name'] ?? '') as string,
-    registrationNumber: item['registrationNumber'] as string | undefined,
-    baseUnit: item['baseUnit'] as string | undefined,
-    source: 'pos' as const,
-    raw: item,
-  }));
+  const items: DrugSearchItem[] = rawItems.map((item) => {
+    const parsed = DrugPosItemSchema.safeParse(item);
+    const itemData = parsed.success ? parsed.data : ({} as any);
+    return {
+      id: (itemData.id ?? item['drugId'] ?? item['id'] ?? '') as string,
+      name: (itemData.tenThuoc ?? item['productName'] ?? item['tenThuoc'] ?? item['name'] ?? '') as string,
+      registrationNumber: (itemData.soDangKy ?? item['registrationNumber']) as string | undefined,
+      baseUnit: item['baseUnit'] as string | undefined,
+      source: 'pos' as const,
+      raw: item,
+    };
+  });
 
   return { items, total };
 }
@@ -141,19 +146,26 @@ function parseMasterResponse(
   const rawItems = (data['items'] ?? data['data'] ?? []) as Array<Record<string, unknown>>;
   const total = (data['total'] as number) ?? rawItems.length;
 
-  const items: DrugSearchItem[] = rawItems.map((item) => ({
-    id: (item['id'] ?? item['drugId'] ?? '') as string,
-    name: (item['name'] ?? item['tenThuoc'] ?? '') as string,
-    registrationNumber: (item['registration_number'] ?? item['so_dang_ky']) as string | undefined,
-    baseUnit: (item['base_unit'] ?? item['don_vi_co_ban']) as string | undefined,
-    source,
-    raw: item,
-  }));
+  const items: DrugSearchItem[] = rawItems.map((item) => {
+    const parsed = DrugMasterItemSchema.safeParse(item);
+    const itemData = parsed.success ? parsed.data : ({} as any);
+    return {
+      id: (itemData.id ?? item['id'] ?? item['drugId'] ?? '') as string,
+      name: (itemData.tenThuoc ?? item['name'] ?? item['tenThuoc'] ?? '') as string,
+      registrationNumber: (itemData.soDangKy ?? item['registration_number'] ?? item['so_dang_ky']) as string | undefined,
+      baseUnit: (item['base_unit'] ?? item['don_vi_co_ban']) as string | undefined,
+      source,
+      raw: item,
+    };
+  });
 
   return { items, total };
 }
 
 function mapDrugDetail(data: Record<string, unknown>): DrugDetail {
+  const parsed = DrugDetailSchema.safeParse(data);
+  const detailData = parsed.success ? parsed.data : ({} as any);
+
   const packagings = (data['packagings'] ?? []) as DrugPackaging[];
   const basicPkg = packagings.find((p) => p.isBasicUnit === true) ?? packagings[0];
   const retailPkg = packagings.find((p) => p.isBasicUnit !== true) ?? basicPkg;
@@ -171,10 +183,10 @@ function mapDrugDetail(data: Record<string, unknown>): DrugDetail {
   const manufacturer = data['manufacturer'] as Record<string, unknown> | undefined;
 
   return {
-    id: (data['id'] ?? '') as string,
+    id: (detailData.id ?? data['id'] ?? '') as string,
     maThuocQg: data['ma_thuoc_qg'] as string | undefined,
-    name: (data['name'] ?? data['ten_thuoc'] ?? '') as string,
-    registrationNumber: data['so_dang_ky'] as string | undefined,
+    name: (detailData.tenThuoc ?? data['name'] ?? data['ten_thuoc'] ?? '') as string,
+    registrationNumber: (detailData.soDangKy ?? data['so_dang_ky']) as string | undefined,
     strength: data['strength'] as string | undefined,
     drugGroupId: data['drug_group_id'] as string | undefined,
     prescriptionStatus: data['prescription_status'] as string | undefined,
@@ -208,7 +220,7 @@ function mapDrugDetail(data: Record<string, unknown>): DrugDetail {
     retailUnitId: retailPkg?.id,
     retailUnitName: retailPkg?.unitName,
     conversionRate,
-    countryOfManufacture: data['nuoc_san_xuat'] as string | undefined,
+    countryOfManufacture: (detailData.countryOfManufacture ?? data['nuoc_san_xuat']) as string | undefined,
     raw: data,
   };
 }

@@ -4,3 +4,8 @@ coverage/
 *.tsbuildinfo
 .env
 .env.local
+.specstory/
+.cursor/
+.agents/
+.z8l/
+.vscode/

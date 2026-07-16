@@ -3,6 +3,7 @@ import type { RetryOptions } from './retry.js';
 import { getRetryDelay, shouldRetry } from './retry.js';
 import { generateTraceId } from './logger.js';
 import { maskSecrets, truncateLogBody } from './logging-utils.js';
+import { ProxyAgent } from 'undici';
 
 /**
  * Authentication provider interface.
@@ -46,6 +47,8 @@ export interface HttpClientOptions {
   retry?: RetryOptions;
   /** Static headers injected on every request (e.g. app-name/app-key) */
   defaultHeaders?: Record<string, string>;
+  /** Optional proxy server URL */
+  proxyUrl?: string;
 }
 
 interface RequestInit {
@@ -65,6 +68,7 @@ export class HttpClient {
   private readonly logger: Logger;
   private readonly retryOpts?: RetryOptions;
   private readonly defaultHeaders: Record<string, string>;
+  private readonly proxyAgent?: ProxyAgent;
   private auth?: AuthProvider;
 
   constructor(opts: HttpClientOptions, auth?: AuthProvider) {
@@ -73,6 +77,7 @@ export class HttpClient {
     this.retryOpts = opts.retry;
     this.defaultHeaders = opts.defaultHeaders ?? {};
     this.auth = auth;
+    this.proxyAgent = opts.proxyUrl ? new ProxyAgent(opts.proxyUrl) : undefined;
   }
 
   setAuth(auth: AuthProvider): void {
@@ -122,7 +127,8 @@ export class HttpClient {
           headers,
           body: bodyStr,
           signal: controller.signal,
-        });
+          ...(this.proxyAgent ? { dispatcher: this.proxyAgent } : {}),
+        } as any);
         clearTimeout(timer);
 
         // 401 → re-auth once, then retry

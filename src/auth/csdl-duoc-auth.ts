@@ -7,6 +7,7 @@ import {
   DEFAULT_TOKEN_TTL_HOURS,
   TOKEN_REFRESH_MINUTES,
 } from '../constants.js';
+import { ProxyAgent } from 'undici';
 
 /**
  * CSDL Dược (QĐ 522) authentication manager.
@@ -24,6 +25,7 @@ export class CsdlDuocAuth implements AuthProvider {
   private readonly logger: Logger;
   private readonly tokenTtlHours: number;
   private readonly onTokenChange?: (token: string, expiresAt: Date) => void;
+  private readonly proxyAgent?: ProxyAgent;
   private state: AuthState | null = null;
   private loginPromise: Promise<void> | null = null;
 
@@ -33,12 +35,14 @@ export class CsdlDuocAuth implements AuthProvider {
     logger: Logger;
     tokenTtlHours?: number;
     onTokenChange?: (token: string, expiresAt: Date) => void;
+    proxyUrl?: string;
   }) {
     this.config = opts.config;
     this.baseUrl = opts.baseUrl;
     this.logger = opts.logger;
     this.tokenTtlHours = opts.tokenTtlHours ?? DEFAULT_TOKEN_TTL_HOURS;
     this.onTokenChange = opts.onTokenChange;
+    this.proxyAgent = opts.proxyUrl ? new ProxyAgent(opts.proxyUrl) : undefined;
   }
 
   async getAuthHeaders(): Promise<Record<string, string>> {
@@ -97,7 +101,8 @@ export class CsdlDuocAuth implements AuthProvider {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams(body).toString(),
-        });
+          ...(this.proxyAgent ? { dispatcher: this.proxyAgent } : {}),
+        } as any);
 
         if (!resp.ok) {
           const text = await resp.text();

@@ -59,6 +59,12 @@ export interface SDKConfig {
    * Expiry timestamp for the cached token.
    */
   cachedTokenExpiresAt?: Date;
+
+  /**
+   * Optional: Proxy server URL (e.g. 'http://username:password@vietnam-proxy-ip:port')
+   * to bypass firewall restrictions when deployed in cloud environments.
+   */
+  proxyUrl?: string;
 }
 
 /** Resolve the CSDL Dược base URL from config */
