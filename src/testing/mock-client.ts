@@ -25,14 +25,30 @@ export class MockDrugPortalClient extends DrugPortalClient {
     // Mock QĐ 228 sub-client methods
     if (this.qd228) {
       this.qd228.prescriptions.get = async (code: string) => this.mockGetPrescription(code);
-      this.qd228.prescriptions.updateSaleQty = async () => ({ success: true, status: 200, data: {} });
+      this.qd228.prescriptions.updateSaleQty = async () => ({
+        success: true,
+        status: 200,
+        data: {},
+      });
     }
   }
 
   // Pre-configured mock data stores that you can modify in tests
   public mockDrugs: DrugSearchItem[] = [
-    { id: '1', name: 'Paracetamol 500mg', registrationNumber: 'VD-12345-20', baseUnit: 'Viên', source: 'pos' },
-    { id: '2', name: 'Ibuprofen 400mg', registrationNumber: 'VD-67890-21', baseUnit: 'Viên', source: 'master' },
+    {
+      id: '1',
+      name: 'Paracetamol 500mg',
+      registrationNumber: 'VD-12345-20',
+      baseUnit: 'Viên',
+      source: 'pos',
+    },
+    {
+      id: '2',
+      name: 'Ibuprofen 400mg',
+      registrationNumber: 'VD-67890-21',
+      baseUnit: 'Viên',
+      source: 'master',
+    },
   ];
 
   public mockPrescriptions: Record<string, Prescription> = {
@@ -44,19 +60,27 @@ export class MockDrugPortalClient extends DrugPortalClient {
       doctorName: 'Dr. John Doe',
       facilityName: 'Bệnh viện Bạch Mai',
       items: [
-        { drugCode: '1', drugName: 'Paracetamol 500mg', unitName: 'Viên', prescribedQuantity: 10, price: 1000 },
+        {
+          drugCode: '1',
+          drugName: 'Paracetamol 500mg',
+          unitName: 'Viên',
+          prescribedQuantity: 10,
+          price: 1000,
+        },
       ],
       raw: {},
     },
   };
 
   private async mockSearchDrugs(keyword: string): Promise<DrugSearchResult> {
-    const items = this.mockDrugs.filter(d => d.name.toLowerCase().includes(keyword.toLowerCase()));
+    const items = this.mockDrugs.filter((d) =>
+      d.name.toLowerCase().includes(keyword.toLowerCase()),
+    );
     return { items, total: items.length };
   }
 
   private async mockGetDrugDetail(id: string): Promise<DrugDetail> {
-    const drug = this.mockDrugs.find(d => d.id === id);
+    const drug = this.mockDrugs.find((d) => d.id === id);
     if (!drug) throw new Error(`Drug with ID ${id} not found in mock store`);
     return {
       id: drug.id,

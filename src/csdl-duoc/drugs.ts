@@ -128,7 +128,11 @@ function parsePosResponse(data: Record<string, unknown>): DrugSearchResult {
     const itemData = parsed.success ? parsed.data : ({} as any);
     return {
       id: (itemData.id ?? item['drugId'] ?? item['id'] ?? '') as string,
-      name: (itemData.tenThuoc ?? item['productName'] ?? item['tenThuoc'] ?? item['name'] ?? '') as string,
+      name: (itemData.tenThuoc ??
+        item['productName'] ??
+        item['tenThuoc'] ??
+        item['name'] ??
+        '') as string,
       registrationNumber: (itemData.soDangKy ?? item['registrationNumber']) as string | undefined,
       baseUnit: item['baseUnit'] as string | undefined,
       source: 'pos' as const,
@@ -152,7 +156,9 @@ function parseMasterResponse(
     return {
       id: (itemData.id ?? item['id'] ?? item['drugId'] ?? '') as string,
       name: (itemData.tenThuoc ?? item['name'] ?? item['tenThuoc'] ?? '') as string,
-      registrationNumber: (itemData.soDangKy ?? item['registration_number'] ?? item['so_dang_ky']) as string | undefined,
+      registrationNumber: (itemData.soDangKy ??
+        item['registration_number'] ??
+        item['so_dang_ky']) as string | undefined,
       baseUnit: (item['base_unit'] ?? item['don_vi_co_ban']) as string | undefined,
       source,
       raw: item,
@@ -220,7 +226,8 @@ function mapDrugDetail(data: Record<string, unknown>): DrugDetail {
     retailUnitId: retailPkg?.id,
     retailUnitName: retailPkg?.unitName,
     conversionRate,
-    countryOfManufacture: (detailData.countryOfManufacture ?? data['nuoc_san_xuat']) as string | undefined,
+    countryOfManufacture: (detailData.countryOfManufacture ?? data['nuoc_san_xuat']) as
+      string | undefined,
     raw: data,
   };
 }

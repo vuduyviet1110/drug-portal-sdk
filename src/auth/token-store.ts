@@ -138,7 +138,7 @@ export class RedisTokenStore implements TokenStore {
     const redisKey = `${this.prefix}${key}`;
     const value = JSON.stringify(state);
     const ttlSeconds = Math.max(0, Math.floor((state.expiresAt.getTime() - Date.now()) / 1000));
-    
+
     if (ttlSeconds > 0) {
       await this.client.set(redisKey, value, 'EX', ttlSeconds);
     } else {

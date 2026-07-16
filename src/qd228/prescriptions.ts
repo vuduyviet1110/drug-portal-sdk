@@ -102,9 +102,11 @@ function mapPrescription(maDonThuoc: string, data: Record<string, unknown>): Pre
   const parsed = PrescriptionSchema.safeParse(data);
   const rxData = parsed.success ? parsed.data : ({} as any);
 
-  const rxItems = (rxData.thong_tin_don_thuoc ?? rxData.items ?? data['thong_tin_don_thuoc'] ?? data['items'] ?? []) as Array<
-    Record<string, unknown>
-  >;
+  const rxItems = (rxData.thong_tin_don_thuoc ??
+    rxData.items ??
+    data['thong_tin_don_thuoc'] ??
+    data['items'] ??
+    []) as Array<Record<string, unknown>>;
 
   let diagnosisStr = '';
   const rawDiagnosis = rxData.chan_doan ?? data['chan_doan'];
@@ -126,13 +128,16 @@ function mapPrescription(maDonThuoc: string, data: Record<string, unknown>): Pre
 
   return {
     maDonThuoc,
-    patientBirthDate: (rxData.ngay_sinh_benh_nhan ?? data['ngay_sinh_benh_nhan']) as string | undefined,
+    patientBirthDate: (rxData.ngay_sinh_benh_nhan ?? data['ngay_sinh_benh_nhan']) as
+      string | undefined,
     patientName: (rxData.ho_ten_benh_nhan ?? data['ho_ten_benh_nhan']) as string | undefined,
     patientHealthId: (rxData.ma_dinh_danh_y_te ?? data['ma_dinh_danh_y_te']) as string | undefined,
     diagnosis: diagnosisStr || undefined,
     doctorName: (rxData.ten_bac_si ?? data['ten_bac_si']) as string | undefined,
-    facilityName: (rxData.ten_co_so_kham_chua_benh ?? rxData.ten_co_so_kham ?? data['ten_co_so_kham_chua_benh'] ?? data['ten_co_so_kham']) as
-      string | undefined,
+    facilityName: (rxData.ten_co_so_kham_chua_benh ??
+      rxData.ten_co_so_kham ??
+      data['ten_co_so_kham_chua_benh'] ??
+      data['ten_co_so_kham']) as string | undefined,
     items: rxItems.map((item) => {
       const rawQty =
         item['so_luong'] ?? item['so_luong_to'] ?? item['prescribed_quantity'] ?? item['quantity'];
