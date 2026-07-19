@@ -9,6 +9,7 @@ import type {
 import type { Logger } from '../http/logger.js';
 import { CSDL_DUOC_ENDPOINTS } from '../constants.js';
 import { DrugPosItemSchema, DrugMasterItemSchema, DrugDetailSchema } from '../types/schemas.js';
+import type { RequestOptions } from '../types/common.js';
 
 /**
  * Drug catalog and search operations.
@@ -32,31 +33,36 @@ export class DrugClient {
    * Unified drug search — POS portal first, fallback to master catalog.
    * Ported from `CsdlDuocService.search_drugs_for_wizard()`.
    */
-  async search(keyword: string, opts: DrugSearchOptions = {}): Promise<DrugSearchResult> {
+  async search(
+    keyword: string,
+    opts: DrugSearchOptions = {},
+    apiOpts?: RequestOptions,
+  ): Promise<DrugSearchResult> {
     const { page = 1, pageSize = 20, source = 'auto' } = opts;
 
     if (source === 'pos' || source === 'auto') {
       try {
-        const result = await this.searchPos(keyword, { page, pageSize });
+        const result = await this.searchPos(keyword, { page, pageSize }, apiOpts);
         if (result.items.length > 0) return result;
       } catch (err) {
         this.logger.warn('POS drug search failed, trying master catalog', {
           error: (err as Error).message,
+          traceId: apiOpts?.traceId,
         });
       }
     }
 
     if (source === 'master' || source === 'auto') {
-      return this.searchMaster(keyword, { page, pageSize });
+      return this.searchMaster(keyword, { page, pageSize }, apiOpts);
     }
 
     return { items: [], total: 0 };
   }
 
-  /** POS portal search (richer results, uses /api/pos/product/get-paged) */
   async searchPos(
     keyword: string,
     opts: { page?: number; pageSize?: number } = {},
+    apiOpts?: RequestOptions,
   ): Promise<DrugSearchResult> {
     const { page = 1, pageSize = 20 } = opts;
     const skipCount = Math.max(0, (page - 1) * pageSize);
@@ -77,27 +83,29 @@ export class DrugClient {
     const data = await this.portalHttp.post<Record<string, unknown>>(
       CSDL_DUOC_ENDPOINTS.POS_PRODUCT_GET_PAGED,
       body,
+      { traceId: apiOpts?.traceId },
     );
 
     return parsePosResponse(data);
   }
 
-  /** Master catalog search (GET /master/drugs) */
   async searchMaster(
     keyword: string,
     opts: { page?: number; pageSize?: number } = {},
+    apiOpts?: RequestOptions,
   ): Promise<DrugSearchResult> {
     const { page = 1, pageSize = 20 } = opts;
     const data = await this.http.get<Record<string, unknown>>(CSDL_DUOC_ENDPOINTS.MASTER_DRUGS, {
       queryParams: { search: keyword, page, page_size: pageSize },
+      traceId: apiOpts?.traceId,
     });
     return parseMasterResponse(data, 'master');
   }
 
-  /** Get full drug detail by ID (GET /master/drugs/{drugId}) */
-  async getDetail(drugId: string): Promise<DrugDetail> {
+  async getDetail(drugId: string, apiOpts?: RequestOptions): Promise<DrugDetail> {
     const data = await this.http.get<Record<string, unknown>>(
       `${CSDL_DUOC_ENDPOINTS.MASTER_DRUGS}/${encodeURIComponent(drugId)}`,
+      { traceId: apiOpts?.traceId },
     );
     return mapDrugDetail(data);
   }

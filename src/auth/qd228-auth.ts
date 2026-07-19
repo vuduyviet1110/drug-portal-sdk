@@ -19,7 +19,7 @@ export class Qd228Auth implements AuthProvider {
     this.logger = logger;
   }
 
-  async getAuthHeaders(): Promise<Record<string, string>> {
+  async getAuthHeaders(_traceId?: string): Promise<Record<string, string>> {
     return {
       'app-name': this.config.appName,
       'app-key': this.config.appKey,
@@ -27,8 +27,8 @@ export class Qd228Auth implements AuthProvider {
   }
 
   /** QĐ 228 has no refresh — always returns false (no retry allowed) */
-  async onUnauthorized(): Promise<boolean> {
-    this.logger.error('QĐ 228 returned 401 — static credentials may be invalid');
+  async onUnauthorized(traceId?: string): Promise<boolean> {
+    this.logger.error('QĐ 228 returned 401 — static credentials may be invalid', { traceId });
     return false;
   }
 }

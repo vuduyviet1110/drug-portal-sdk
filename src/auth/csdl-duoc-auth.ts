@@ -45,23 +45,25 @@ export class CsdlDuocAuth implements AuthProvider {
     this.proxyAgent = opts.proxyUrl ? new ProxyAgent(opts.proxyUrl) : undefined;
   }
 
-  async getAuthHeaders(): Promise<Record<string, string>> {
+  async getAuthHeaders(traceId?: string): Promise<Record<string, string>> {
+    // LAZY LOGIN: Mỗi khi gửi request, HTTP Client gọi vào đây. 
+    // Nếu token chưa có hoặc đã hết hạn (isTokenValid = false), nó sẽ tự động chờ lấy token mới.
     if (!this.isTokenValid()) {
-      await this.login();
+      await this.login(false, traceId);
     }
     return { Authorization: `Bearer ${this.state!.accessToken}` };
   }
 
-  /** Called when a 401 is received — clears cached token and re-logs in. */
-  async onUnauthorized(): Promise<boolean> {
-    this.logger.warn('Token rejected (401) — clearing and re-logging in');
+  async onUnauthorized(traceId?: string): Promise<boolean> {
+    this.logger.warn('Token rejected (401) — clearing and re-logging in', { traceId });
     this.state = null;
     try {
-      await this.login(true);
+      await this.login(true, traceId);
       return true;
     } catch (err) {
       this.logger.error('Re-login failed after 401', {
         error: (err as Error).message,
+        traceId,
       });
       return false;
     }
@@ -78,15 +80,18 @@ export class CsdlDuocAuth implements AuthProvider {
     return this.state;
   }
 
-  private async login(force = false): Promise<void> {
+  private async login(force = false, traceId?: string): Promise<void> {
     if (!force && this.isTokenValid()) return;
 
+    //CHỐNG DOG-PILING: Nếu có 10 request gọi API cùng lúc khi chưa có Token, 
+    // chỉ request đầu tiên chạy xuống dưới để khởi tạo loginPromise. 9 request còn lại 
+    // sẽ lọt vào if này và đứng im chờ cái Promise đó xong, tránh việc gọi login 10 lần.
     if (this.loginPromise) {
       return this.loginPromise;
     }
 
     this.loginPromise = (async () => {
-      this.logger.info('Authenticating with CSDL Dược', { baseUrl: this.baseUrl });
+      this.logger.info('Authenticating with CSDL Dược', { baseUrl: this.baseUrl, traceId });
 
       const passwordB64 = Buffer.from(this.config.password, 'utf8').toString('base64');
       const body = {
@@ -119,7 +124,7 @@ export class CsdlDuocAuth implements AuthProvider {
         const expiresAt = new Date(Date.now() + expiresInHours * 3600_000);
 
         this.state = { accessToken: token, expiresAt };
-        this.logger.info('CSDL Dược authenticated', { expiresAt: expiresAt.toISOString() });
+        this.logger.info('CSDL Dược authenticated', { expiresAt: expiresAt.toISOString(), traceId });
 
         if (this.onTokenChange) {
           try {
@@ -127,11 +132,12 @@ export class CsdlDuocAuth implements AuthProvider {
           } catch (callbackErr) {
             this.logger.warn('Error in onTokenChange callback', {
               error: (callbackErr as Error).message,
+              traceId,
             });
           }
         }
       } catch (err) {
-        this.logger.error('CSDL Dược login error', { error: (err as Error).message });
+        this.logger.error('CSDL Dược login error', { error: (err as Error).message, traceId });
         throw err;
       }
     })();
@@ -145,6 +151,9 @@ export class CsdlDuocAuth implements AuthProvider {
 
   private isTokenValid(): boolean {
     if (!this.state) return false;
+    //AUTO-REFRESH: Cấu hình khoảng đệm (buffer) là 5 phút (TOKEN_REFRESH_MINUTES).
+    // Giả sử Token còn 4 phút nữa là hết hạn -> SDK coi như đã "chết" và trả về false.
+    // Điều này đảm bảo Token luôn tươi mới, không bị chết giữa chừng lúc đang rớt mạng.
     const bufferMs = TOKEN_REFRESH_MINUTES * 60_000;
     return this.state.expiresAt.getTime() - bufferMs > Date.now();
   }

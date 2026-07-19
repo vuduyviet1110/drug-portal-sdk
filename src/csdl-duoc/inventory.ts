@@ -5,6 +5,7 @@ import type {
   StockTakingOptions,
   TransactionResult,
 } from '../types/inventory.js';
+import type { RequestOptions } from '../types/common.js';
 import type { Logger } from '../http/logger.js';
 import {
   CSDL_DUOC_ENDPOINTS,
@@ -17,6 +18,7 @@ import {
   POLL_ERROR_RETRY_DELAY_MS,
 } from '../constants.js';
 import type { ManufacturerInfo, StockItem } from '../types/inventory.js';
+import { generateTraceId } from '../http/logger.js';
 
 /** Transaction type used in polling */
 type TransactionType = 'stock-in' | 'stock-out' | 'stock-taking';
@@ -52,9 +54,10 @@ export class InventoryClient {
    *
    * POST /transactions/stock-in → returns transaction_id → auto-polls until terminal.
    */
-  async stockIn(opts: StockInOptions): Promise<TransactionResult> {
-    const txId = await this.postTransaction(CSDL_DUOC_ENDPOINTS.STOCK_IN, opts, 'stock-in');
-    return this.pollTransaction('stock-in', txId);
+  async stockIn(opts: StockInOptions, apiOpts?: RequestOptions): Promise<TransactionResult> {
+    const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
+    const txId = await this.postTransaction(CSDL_DUOC_ENDPOINTS.STOCK_IN, opts, 'stock-in', resolvedOpts);
+    return this.pollTransaction('stock-in', txId, resolvedOpts);
   }
 
   /**
@@ -62,9 +65,10 @@ export class InventoryClient {
    *
    * POST /transactions/stock-out → returns transaction_id → auto-polls until terminal.
    */
-  async stockOut(opts: StockOutOptions): Promise<TransactionResult> {
-    const txId = await this.postTransaction(CSDL_DUOC_ENDPOINTS.STOCK_OUT, opts, 'stock-out');
-    return this.pollTransaction('stock-out', txId);
+  async stockOut(opts: StockOutOptions, apiOpts?: RequestOptions): Promise<TransactionResult> {
+    const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
+    const txId = await this.postTransaction(CSDL_DUOC_ENDPOINTS.STOCK_OUT, opts, 'stock-out', resolvedOpts);
+    return this.pollTransaction('stock-out', txId, resolvedOpts);
   }
 
   /**
@@ -72,32 +76,33 @@ export class InventoryClient {
    *
    * POST /transactions/stock-taking → returns transaction_id → auto-polls until terminal.
    */
-  async stockTaking(opts: StockTakingOptions): Promise<TransactionResult> {
-    const txId = await this.postTransaction(CSDL_DUOC_ENDPOINTS.STOCK_TAKING, opts, 'stock-taking');
-    return this.pollTransaction('stock-taking', txId);
+  async stockTaking(opts: StockTakingOptions, apiOpts?: RequestOptions): Promise<TransactionResult> {
+    const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
+    const txId = await this.postTransaction(CSDL_DUOC_ENDPOINTS.STOCK_TAKING, opts, 'stock-taking', resolvedOpts);
+    return this.pollTransaction('stock-taking', txId, resolvedOpts);
   }
 
-  /**
-   * Poll a transaction status until terminal (completed, rejected, error).
-   *
-   * GET /transactions/{type}/{id}/status
-   * Ported from `poll_until_terminal()` in helpers/async_polling.py.
-   */
-  async pollTransaction(type: TransactionType, transactionId: string): Promise<TransactionResult> {
+  async pollTransaction(
+    type: TransactionType,
+    transactionId: string,
+    apiOpts?: RequestOptions,
+  ): Promise<TransactionResult> {
     const endpoint = `/transactions/${type}/${transactionId}/status`;
     let attempts = 0;
     let errorRetries = 0;
+    const traceId = apiOpts?.traceId;
 
     while (attempts < POLL_MAX_ATTEMPTS) {
       attempts++;
       try {
-        const statusObj = await this.http.get<Record<string, unknown>>(endpoint);
+        const statusObj = await this.http.get<Record<string, unknown>>(endpoint, { traceId });
         const rawStatus = (statusObj['status'] ?? statusObj['status_code'] ?? '') as string;
         const statusCode = rawStatus.toLowerCase();
 
         this.logger.debug(`Poll attempt ${attempts}: status=${rawStatus}`, {
           transactionId,
           type,
+          traceId,
         });
 
         if (TERMINAL_STATUSES.includes(statusCode as (typeof TERMINAL_STATUSES)[number])) {
@@ -109,12 +114,13 @@ export class InventoryClient {
           } as TransactionResult & { timedOut: boolean; attempts: number };
 
           if (statusCode === SUCCESS_STATUS) {
-            this.logger.info(`Transaction completed successfully`, { transactionId, attempts });
+            this.logger.info(`Transaction completed successfully`, { transactionId, attempts, traceId });
           } else {
             this.logger.warn(`Transaction ${statusCode}`, {
               transactionId,
               status: statusObj,
               attempts,
+              traceId,
             });
           }
 
@@ -131,7 +137,7 @@ export class InventoryClient {
           await sleep(POLL_ACCEPTED_DELAY_MS);
         }
       } catch (err) {
-        this.logger.warn(`Poll error on attempt ${attempts}: ${(err as Error).message}`);
+        this.logger.warn(`Poll error on attempt ${attempts}: ${(err as Error).message}`, { traceId });
         errorRetries++;
         if (errorRetries > POLL_MAX_ERROR_RETRIES) {
           return {
@@ -161,11 +167,13 @@ export class InventoryClient {
     endpoint: string,
     opts: StockInOptions | StockOutOptions | StockTakingOptions,
     type: 'stock-in' | 'stock-out' | 'stock-taking',
+    apiOpts?: RequestOptions,
   ): Promise<string> {
     const payload = this.buildPayload(opts, type);
-    const data = await this.http.post<Record<string, unknown>>(endpoint, payload);
+    const traceId = apiOpts?.traceId;
+    const data = await this.http.post<Record<string, unknown>>(endpoint, payload, { traceId });
     const txId = (data['transaction_id'] ?? data['id'] ?? '') as string;
-    this.logger.info(`Transaction submitted: ${txId}`, { type });
+    this.logger.info(`Transaction submitted: ${txId}`, { type, traceId });
     return txId;
   }
 

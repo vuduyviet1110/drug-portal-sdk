@@ -11,9 +11,9 @@ import { ProxyAgent } from 'undici';
  */
 export interface AuthProvider {
   /** Return headers to inject into every request */
-  getAuthHeaders(): Promise<Record<string, string>>;
+  getAuthHeaders(traceId?: string): Promise<Record<string, string>>;
   /** Called after receiving a 401 — may clear cached token. Returns true if retry allowed. */
-  onUnauthorized(): Promise<boolean>;
+  onUnauthorized(traceId?: string): Promise<boolean>;
 }
 
 /** SDK-wide error type */
@@ -57,6 +57,7 @@ interface RequestInit {
   headers?: Record<string, string>;
   queryParams?: Record<string, string | number | undefined>;
   contentType?: 'json' | 'form';
+  traceId?: string;
 }
 
 /**
@@ -85,7 +86,9 @@ export class HttpClient {
   }
 
   async request<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
-    const traceId = generateTraceId();
+    // Tạo mã ngẫu nhiên cho mỗi request để dễ dàng trace theo dõi log từ lúc gửi đến lúc nhận (Traceability).
+    // Nếu có traceId truyền vào từ bên ngoài (ví dụ trong polling hoặc từ app cha), ta ưu tiên dùng traceId đó.
+    const traceId = init.traceId ?? generateTraceId();
     const url = this.buildUrl(path, init.queryParams);
     const method = init.method ?? 'GET';
     const contentType = init.contentType ?? 'json';
@@ -106,7 +109,9 @@ export class HttpClient {
       ...contentHeader,
       ...this.defaultHeaders,
       ...(init.headers ?? {}),
-      ...(this.auth ? await this.auth.getAuthHeaders() : {}),
+      // Trước khi gửi, gọi AuthProvider để lấy Bearer Token nhét vào Header. 
+      // Nếu token chưa có/hết hạn, quá trình này sẽ tự động chặn lại để đi Login lấy Token.
+      ...(this.auth ? await this.auth.getAuthHeaders(traceId) : {}),
     };
 
     const timeoutMs = this.retryOpts?.timeoutMs ?? 30_000;
@@ -117,6 +122,7 @@ export class HttpClient {
     let retriesUsed = 0;
     let did401Retry = false;
 
+    // Vòng lặp Retry. Nếu gọi bị lỗi Server (500, 429) hoặc đứt mạng, sẽ thử lại tối đa maxRetries lần.
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -133,11 +139,16 @@ export class HttpClient {
 
         // 401 → re-auth once, then retry
         if (resp.status === 401 && !did401Retry && this.auth) {
+          // CƠ CHẾ AUTO-RECOVERY: Đôi khi Token chưa hết hạn trên RAM nhưng Server Cục Dược đã xóa (Invalidate).
+          // SDK sẽ bắt lỗi 401, đánh dấu cờ did401Retry để không bị lặp vô hạn.
           did401Retry = true;
-          this.logger.warn(`[${traceId}] 401 Unauthorized — refreshing auth and retrying`);
-          const refreshed = await this.auth.onUnauthorized();
+          this.logger.warn(`[${traceId}] 401 Unauthorized — refreshing auth and retrying`, { traceId });
+          // Gọi hàm này để xóa token cũ, ép Login lại lấy token mới toanh.
+          const refreshed = await this.auth.onUnauthorized(traceId);
           if (refreshed) {
-            Object.assign(headers, await this.auth.getAuthHeaders());
+            // Lấy token mới đè vào Header cũ, dùng "continue" lặp lại vòng lặp để gửi lại đúng Request cũ.
+            // Developer bên ngoài sẽ KHÔNG hề biết là vừa có lỗi 401 xảy ra.
+            Object.assign(headers, await this.auth.getAuthHeaders(traceId));
             // Re-issue same request with fresh headers — don't count as attempt
             continue;
           }
@@ -150,6 +161,8 @@ export class HttpClient {
 
         // 429 / 5xx → retry
         if (shouldRetry(resp.status, this.retryOpts) && attempt < maxRetries) {
+          // Nếu rớt vào 500 (Server Cục Dược sập) hoặc 429 (Bị chặn do gọi quá nhanh).
+          // Tính toán thời gian ngủ (delay) rồi mới thử lại để giảm tải cho Server.
           const delay = getRetryDelay(attempt, resp.status, resp, this.retryOpts);
           this.logger.warn(
             `[${traceId}] HTTP ${resp.status} — retry ${attempt + 1}/${maxRetries} in ${delay}ms`,
@@ -186,6 +199,7 @@ export class HttpClient {
           isAbort;
 
         if (isTransient && attempt < maxRetries) {
+          // Đứt mạng giữa chừng hoặc quá 30s không nhận được phản hồi (Timeout), cũng sẽ tính toán thời gian delay để thử lại.
           const delay = getRetryDelay(attempt, 0, undefined, this.retryOpts);
           this.logger.warn(
             `[${traceId}] ${isAbort ? 'Timeout' : 'Network error'} — retry ${attempt + 1}/${maxRetries} in ${delay}ms`,
@@ -214,6 +228,7 @@ export class HttpClient {
     opts?: {
       headers?: Record<string, string>;
       queryParams?: Record<string, string | number | undefined>;
+      traceId?: string;
     },
   ): Promise<T> {
     return this.request<T>(path, { method: 'GET', ...opts });
@@ -222,7 +237,11 @@ export class HttpClient {
   async post<T = unknown>(
     path: string,
     body: unknown,
-    opts?: { headers?: Record<string, string>; contentType?: 'json' | 'form' },
+    opts?: {
+      headers?: Record<string, string>;
+      contentType?: 'json' | 'form';
+      traceId?: string;
+    },
   ): Promise<T> {
     return this.request<T>(path, { method: 'POST', body, ...opts });
   }

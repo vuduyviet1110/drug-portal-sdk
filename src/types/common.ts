@@ -26,3 +26,9 @@ export interface PaginationOptions {
   page?: number;
   pageSize?: number;
 }
+
+/** General request options for all SDK methods */
+export interface RequestOptions {
+  /** Optional trace ID to correlate logs. If not provided, a random UUID will be generated. */
+  traceId?: string;
+}
