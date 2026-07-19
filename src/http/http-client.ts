@@ -3,7 +3,7 @@ import type { RetryOptions } from './retry.js';
 import { getRetryDelay, shouldRetry } from './retry.js';
 import { generateTraceId } from './logger.js';
 import { maskSecrets, truncateLogBody } from './logging-utils.js';
-import { ProxyAgent } from 'undici';
+import { ProxyAgent, Socks5ProxyAgent } from 'undici';
 
 /**
  * Authentication provider interface.
@@ -69,7 +69,7 @@ export class HttpClient {
   private readonly logger: Logger;
   private readonly retryOpts?: RetryOptions;
   private readonly defaultHeaders: Record<string, string>;
-  private readonly proxyAgent?: ProxyAgent;
+  private readonly proxyAgent?: ProxyAgent | Socks5ProxyAgent;
   private auth?: AuthProvider;
 
   constructor(opts: HttpClientOptions, auth?: AuthProvider) {
@@ -78,7 +78,15 @@ export class HttpClient {
     this.retryOpts = opts.retry;
     this.defaultHeaders = opts.defaultHeaders ?? {};
     this.auth = auth;
-    this.proxyAgent = opts.proxyUrl ? new ProxyAgent(opts.proxyUrl) : undefined;
+    if (opts.proxyUrl) {
+      const isSocks =
+        opts.proxyUrl.startsWith('socks://') ||
+        opts.proxyUrl.startsWith('socks5://') ||
+        opts.proxyUrl.startsWith('socks4://');
+      this.proxyAgent = isSocks
+        ? new Socks5ProxyAgent(opts.proxyUrl)
+        : new ProxyAgent(opts.proxyUrl);
+    }
   }
 
   setAuth(auth: AuthProvider): void {
