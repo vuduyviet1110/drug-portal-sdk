@@ -7,7 +7,7 @@ import {
   DEFAULT_TOKEN_TTL_HOURS,
   TOKEN_REFRESH_MINUTES,
 } from '../constants.js';
-import { ProxyAgent } from 'undici';
+import { ProxyAgent, Socks5ProxyAgent } from 'undici';
 
 /**
  * CSDL Dược (QĐ 522) authentication manager.
@@ -25,7 +25,7 @@ export class CsdlDuocAuth implements AuthProvider {
   private readonly logger: Logger;
   private readonly tokenTtlHours: number;
   private readonly onTokenChange?: (token: string, expiresAt: Date) => void;
-  private readonly proxyAgent?: ProxyAgent;
+  private readonly proxyAgent?: ProxyAgent | Socks5ProxyAgent;
   private state: AuthState | null = null;
   private loginPromise: Promise<void> | null = null;
 
@@ -42,7 +42,15 @@ export class CsdlDuocAuth implements AuthProvider {
     this.logger = opts.logger;
     this.tokenTtlHours = opts.tokenTtlHours ?? DEFAULT_TOKEN_TTL_HOURS;
     this.onTokenChange = opts.onTokenChange;
-    this.proxyAgent = opts.proxyUrl ? new ProxyAgent(opts.proxyUrl) : undefined;
+    if (opts.proxyUrl) {
+      const isSocks =
+        opts.proxyUrl.startsWith('socks://') ||
+        opts.proxyUrl.startsWith('socks5://') ||
+        opts.proxyUrl.startsWith('socks4://');
+      this.proxyAgent = isSocks
+        ? new Socks5ProxyAgent(opts.proxyUrl)
+        : new ProxyAgent(opts.proxyUrl);
+    }
   }
 
   async getAuthHeaders(traceId?: string): Promise<Record<string, string>> {
