@@ -109,7 +109,7 @@ export class HttpClient {
       ...contentHeader,
       ...this.defaultHeaders,
       ...(init.headers ?? {}),
-      // Trước khi gửi, gọi AuthProvider để lấy Bearer Token nhét vào Header. 
+      // Trước khi gửi, gọi AuthProvider để lấy Bearer Token nhét vào Header.
       // Nếu token chưa có/hết hạn, quá trình này sẽ tự động chặn lại để đi Login lấy Token.
       ...(this.auth ? await this.auth.getAuthHeaders(traceId) : {}),
     };
@@ -142,7 +142,9 @@ export class HttpClient {
           // CƠ CHẾ AUTO-RECOVERY: Đôi khi Token chưa hết hạn trên RAM nhưng Server Cục Dược đã xóa (Invalidate).
           // SDK sẽ bắt lỗi 401, đánh dấu cờ did401Retry để không bị lặp vô hạn.
           did401Retry = true;
-          this.logger.warn(`[${traceId}] 401 Unauthorized — refreshing auth and retrying`, { traceId });
+          this.logger.warn(`[${traceId}] 401 Unauthorized — refreshing auth and retrying`, {
+            traceId,
+          });
           // Gọi hàm này để xóa token cũ, ép Login lại lấy token mới toanh.
           const refreshed = await this.auth.onUnauthorized(traceId);
           if (refreshed) {

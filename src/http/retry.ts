@@ -37,7 +37,7 @@ export function getRetryDelay(
   const maxDelay = retryOpts?.maxDelayMs ?? 30_000;
 
   // TÔN TRỌNG SERVER ĐANG QUÁ TẢI (429):
-  // Nếu Cục Dược bảo "Too Many Requests" và trả về Header 'Retry-After', SDK sẽ đứng yên 
+  // Nếu Cục Dược bảo "Too Many Requests" và trả về Header 'Retry-After', SDK sẽ đứng yên
   // đúng bằng số giây mà Server yêu cầu để tránh làm sập thêm Server.
   if (status === 429 && response) {
     const retryAfter = response.headers.get('Retry-After');

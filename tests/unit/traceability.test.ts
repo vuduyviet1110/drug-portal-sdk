@@ -24,8 +24,12 @@ describe('Traceability', () => {
     const debugCalls = customLogger.debug.mock.calls;
 
     // Check if the traceId was passed inside metadata parameters of debug/info calls
-    const hasTraceIdInInfo = infoCalls.some(call => call[1] && call[1].traceId === 'custom-trace-id-search');
-    const hasTraceIdInDebug = debugCalls.some(call => call[1] && call[1].traceId === 'custom-trace-id-search');
+    const hasTraceIdInInfo = infoCalls.some(
+      (call) => call[1] && call[1].traceId === 'custom-trace-id-search',
+    );
+    const hasTraceIdInDebug = debugCalls.some(
+      (call) => call[1] && call[1].traceId === 'custom-trace-id-search',
+    );
 
     expect(hasTraceIdInInfo || hasTraceIdInDebug).toBe(true);
   });
@@ -49,27 +53,34 @@ describe('Traceability', () => {
       logger: customLogger,
     });
 
-    await client.csdlDuoc.inventory.stockIn({
-      items: [
-        {
-          drugId: 'DRUG-001',
-          unitId: 'U-001',
-          quantity: 100,
-          batchNo: 'LOT-2024-001',
-          expiryDate: '2025-12-31',
-          price: 5000,
-          manufacturer: { id: 'M-001', name: 'Pharma Corp' },
-        },
-      ],
-      reason: 'supplier',
-      referenceNumber: 'PO-2024-001',
-    }, { traceId: 'custom-trace-id-inventory' });
+    await client.csdlDuoc.inventory.stockIn(
+      {
+        items: [
+          {
+            drugId: 'DRUG-001',
+            unitId: 'U-001',
+            quantity: 100,
+            batchNo: 'LOT-2024-001',
+            expiryDate: '2025-12-31',
+            price: 5000,
+            manufacturer: { id: 'M-001', name: 'Pharma Corp' },
+          },
+        ],
+        reason: 'supplier',
+        referenceNumber: 'PO-2024-001',
+      },
+      { traceId: 'custom-trace-id-inventory' },
+    );
 
     const infoCalls = customLogger.info.mock.calls;
     const debugCalls = customLogger.debug.mock.calls;
 
-    const hasTraceIdInInfo = infoCalls.some(call => call[1] && call[1].traceId === 'custom-trace-id-inventory');
-    const hasTraceIdInDebug = debugCalls.some(call => call[1] && call[1].traceId === 'custom-trace-id-inventory');
+    const hasTraceIdInInfo = infoCalls.some(
+      (call) => call[1] && call[1].traceId === 'custom-trace-id-inventory',
+    );
+    const hasTraceIdInDebug = debugCalls.some(
+      (call) => call[1] && call[1].traceId === 'custom-trace-id-inventory',
+    );
 
     expect(hasTraceIdInInfo || hasTraceIdInDebug).toBe(true);
   });
@@ -91,7 +102,7 @@ describe('Traceability', () => {
             total: 1,
           },
         });
-      })
+      }),
     );
 
     const customLogger = {
@@ -108,7 +119,11 @@ describe('Traceability', () => {
     });
 
     const specificTraceId = 'my-401-retry-trace-id';
-    const result = await client.csdlDuoc.drugs.search('paracetamol', { source: 'pos' }, { traceId: specificTraceId });
+    const result = await client.csdlDuoc.drugs.search(
+      'paracetamol',
+      { source: 'pos' },
+      { traceId: specificTraceId },
+    );
 
     expect(result.items[0]?.id).toBe('DRUG-001');
     expect(requestCount).toBe(2); // First failed 401, second retry succeeded
@@ -122,22 +137,24 @@ describe('Traceability', () => {
     ];
 
     // Filter log entries that belong to this specific flow
-    const relevantCalls = allLogCalls.filter(call => call[1] && call[1].traceId === specificTraceId);
+    const relevantCalls = allLogCalls.filter(
+      (call) => call[1] && call[1].traceId === specificTraceId,
+    );
 
     // Should have logs for request, 401 warn, authenticating (onUnauthorized), and retry request.
     expect(relevantCalls.length).toBeGreaterThanOrEqual(3);
 
     // Verify a warning about 401 was emitted with our traceId
-    const warn401Call = customLogger.warn.mock.calls.find(call => 
-      call[0].includes('401 Unauthorized') && call[1]?.traceId === specificTraceId
+    const warn401Call = customLogger.warn.mock.calls.find(
+      (call) => call[0].includes('401 Unauthorized') && call[1]?.traceId === specificTraceId,
     );
     expect(warn401Call).toBeDefined();
 
     // Verify token refresh logs (Authenticating with CSDL Dược) contained our traceId
-    const refreshAuthCall = customLogger.info.mock.calls.find(call => 
-      call[0].includes('Authenticating with CSDL Dược') && call[1]?.traceId === specificTraceId
+    const refreshAuthCall = customLogger.info.mock.calls.find(
+      (call) =>
+        call[0].includes('Authenticating with CSDL Dược') && call[1]?.traceId === specificTraceId,
     );
     expect(refreshAuthCall).toBeDefined();
   });
 });
-

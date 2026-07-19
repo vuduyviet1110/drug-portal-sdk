@@ -56,7 +56,12 @@ export class InventoryClient {
    */
   async stockIn(opts: StockInOptions, apiOpts?: RequestOptions): Promise<TransactionResult> {
     const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
-    const txId = await this.postTransaction(CSDL_DUOC_ENDPOINTS.STOCK_IN, opts, 'stock-in', resolvedOpts);
+    const txId = await this.postTransaction(
+      CSDL_DUOC_ENDPOINTS.STOCK_IN,
+      opts,
+      'stock-in',
+      resolvedOpts,
+    );
     return this.pollTransaction('stock-in', txId, resolvedOpts);
   }
 
@@ -67,7 +72,12 @@ export class InventoryClient {
    */
   async stockOut(opts: StockOutOptions, apiOpts?: RequestOptions): Promise<TransactionResult> {
     const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
-    const txId = await this.postTransaction(CSDL_DUOC_ENDPOINTS.STOCK_OUT, opts, 'stock-out', resolvedOpts);
+    const txId = await this.postTransaction(
+      CSDL_DUOC_ENDPOINTS.STOCK_OUT,
+      opts,
+      'stock-out',
+      resolvedOpts,
+    );
     return this.pollTransaction('stock-out', txId, resolvedOpts);
   }
 
@@ -76,9 +86,17 @@ export class InventoryClient {
    *
    * POST /transactions/stock-taking → returns transaction_id → auto-polls until terminal.
    */
-  async stockTaking(opts: StockTakingOptions, apiOpts?: RequestOptions): Promise<TransactionResult> {
+  async stockTaking(
+    opts: StockTakingOptions,
+    apiOpts?: RequestOptions,
+  ): Promise<TransactionResult> {
     const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
-    const txId = await this.postTransaction(CSDL_DUOC_ENDPOINTS.STOCK_TAKING, opts, 'stock-taking', resolvedOpts);
+    const txId = await this.postTransaction(
+      CSDL_DUOC_ENDPOINTS.STOCK_TAKING,
+      opts,
+      'stock-taking',
+      resolvedOpts,
+    );
     return this.pollTransaction('stock-taking', txId, resolvedOpts);
   }
 
@@ -114,7 +132,11 @@ export class InventoryClient {
           } as TransactionResult & { timedOut: boolean; attempts: number };
 
           if (statusCode === SUCCESS_STATUS) {
-            this.logger.info(`Transaction completed successfully`, { transactionId, attempts, traceId });
+            this.logger.info(`Transaction completed successfully`, {
+              transactionId,
+              attempts,
+              traceId,
+            });
           } else {
             this.logger.warn(`Transaction ${statusCode}`, {
               transactionId,
@@ -137,7 +159,9 @@ export class InventoryClient {
           await sleep(POLL_ACCEPTED_DELAY_MS);
         }
       } catch (err) {
-        this.logger.warn(`Poll error on attempt ${attempts}: ${(err as Error).message}`, { traceId });
+        this.logger.warn(`Poll error on attempt ${attempts}: ${(err as Error).message}`, {
+          traceId,
+        });
         errorRetries++;
         if (errorRetries > POLL_MAX_ERROR_RETRIES) {
           return {

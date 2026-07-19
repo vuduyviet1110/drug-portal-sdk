@@ -46,7 +46,7 @@ export class CsdlDuocAuth implements AuthProvider {
   }
 
   async getAuthHeaders(traceId?: string): Promise<Record<string, string>> {
-    // LAZY LOGIN: Mỗi khi gửi request, HTTP Client gọi vào đây. 
+    // LAZY LOGIN: Mỗi khi gửi request, HTTP Client gọi vào đây.
     // Nếu token chưa có hoặc đã hết hạn (isTokenValid = false), nó sẽ tự động chờ lấy token mới.
     if (!this.isTokenValid()) {
       await this.login(false, traceId);
@@ -83,8 +83,8 @@ export class CsdlDuocAuth implements AuthProvider {
   private async login(force = false, traceId?: string): Promise<void> {
     if (!force && this.isTokenValid()) return;
 
-    //CHỐNG DOG-PILING: Nếu có 10 request gọi API cùng lúc khi chưa có Token, 
-    // chỉ request đầu tiên chạy xuống dưới để khởi tạo loginPromise. 9 request còn lại 
+    //CHỐNG DOG-PILING: Nếu có 10 request gọi API cùng lúc khi chưa có Token,
+    // chỉ request đầu tiên chạy xuống dưới để khởi tạo loginPromise. 9 request còn lại
     // sẽ lọt vào if này và đứng im chờ cái Promise đó xong, tránh việc gọi login 10 lần.
     if (this.loginPromise) {
       return this.loginPromise;
@@ -124,7 +124,10 @@ export class CsdlDuocAuth implements AuthProvider {
         const expiresAt = new Date(Date.now() + expiresInHours * 3600_000);
 
         this.state = { accessToken: token, expiresAt };
-        this.logger.info('CSDL Dược authenticated', { expiresAt: expiresAt.toISOString(), traceId });
+        this.logger.info('CSDL Dược authenticated', {
+          expiresAt: expiresAt.toISOString(),
+          traceId,
+        });
 
         if (this.onTokenChange) {
           try {
