@@ -102,88 +102,38 @@ export const StockItemSchema = z.object({
   gtin: z.string().optional(),
 });
 
-export const StockInOptionsSchema = z
-  .object({
-    items: z.array(StockItemSchema).min(1, 'items array cannot be empty'),
-    reason: z.enum([
-      'supplier',
-      'return',
-      'transfer-in',
-      'manufactured',
-      'opening-balance',
-      'imported',
-    ]),
-    referenceNumber: z.string().optional(),
-    transactionDate: z.string().optional(),
-    note: z.string().optional(),
-    supplierId: z.string().optional(),
-    sourceStoreId: z.string().optional(),
-    sourceWarehouseId: z.string().optional(),
-    targetStoreId: z.string().optional(),
-    targetWarehouseId: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.reason === 'supplier' && !data.supplierId) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "supplierId is required when reason is 'supplier'",
-      path: ['supplierId'],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.reason === 'transfer-in' && (!data.sourceStoreId || !data.targetStoreId)) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "sourceStoreId and targetStoreId are required when reason is 'transfer-in'",
-      path: ['sourceStoreId'],
-    },
-  );
+export const StockInOptionsSchema = z.object({
+  items: z.array(StockItemSchema).min(1, 'items array cannot be empty'),
+  reason: z.enum([
+    'supplier',
+    'return',
+    'transfer-in',
+    'manufactured',
+    'opening-balance',
+    'imported',
+  ]),
+  referenceNumber: z.string().optional(),
+  transactionDate: z.string().optional(),
+  note: z.string().optional(),
+  supplierId: z.string().optional(),
+  sourceStoreId: z.string().optional(),
+  sourceWarehouseId: z.string().optional(),
+  targetStoreId: z.string().optional(),
+  targetWarehouseId: z.string().optional(),
+});
 
-export const StockOutOptionsSchema = z
-  .object({
-    items: z.array(StockItemSchema).min(1, 'items array cannot be empty'),
-    reason: z.enum(['sale-retail', 'return', 'transfer-out', 'destroy', 'other']),
-    referenceNumber: z.string().optional(),
-    transactionDate: z.string().optional(),
-    note: z.string().optional(),
-    supplierId: z.string().optional(),
-    sourceStoreId: z.string().optional(),
-    sourceWarehouseId: z.string().optional(),
-    targetStoreId: z.string().optional(),
-    targetWarehouseId: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.reason === 'return' && !data.supplierId) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "supplierId is required when reason is 'return'",
-      path: ['supplierId'],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.reason === 'transfer-out' && (!data.sourceStoreId || !data.targetStoreId)) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "sourceStoreId and targetStoreId are required when reason is 'transfer-out'",
-      path: ['sourceStoreId'],
-    },
-  );
+export const StockOutOptionsSchema = z.object({
+  items: z.array(StockItemSchema).min(1, 'items array cannot be empty'),
+  reason: z.enum(['sale-retail', 'return', 'transfer-out', 'destroy', 'other']),
+  referenceNumber: z.string().optional(),
+  transactionDate: z.string().optional(),
+  note: z.string().optional(),
+  supplierId: z.string().optional(),
+  sourceStoreId: z.string().optional(),
+  sourceWarehouseId: z.string().optional(),
+  targetStoreId: z.string().optional(),
+  targetWarehouseId: z.string().optional(),
+});
 
 export const StockTakingItemSchema = z.object({
   drugId: z.string().min(1, 'drugId is required'),
