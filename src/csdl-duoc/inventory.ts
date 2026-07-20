@@ -19,6 +19,11 @@ import {
 } from '../constants.js';
 import type { ManufacturerInfo, StockItem } from '../types/inventory.js';
 import { generateTraceId } from '../http/logger.js';
+import {
+  StockInOptionsSchema,
+  StockOutOptionsSchema,
+  StockTakingOptionsSchema,
+} from '../types/schemas.js';
 
 /** Transaction type used in polling */
 type TransactionType = 'stock-in' | 'stock-out' | 'stock-taking';
@@ -55,6 +60,7 @@ export class InventoryClient {
    * POST /transactions/stock-in → returns transaction_id → auto-polls until terminal.
    */
   async stockIn(opts: StockInOptions, apiOpts?: RequestOptions): Promise<TransactionResult> {
+    StockInOptionsSchema.parse(opts);
     const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
     const txId = await this.postTransaction(
       CSDL_DUOC_ENDPOINTS.STOCK_IN,
@@ -71,6 +77,7 @@ export class InventoryClient {
    * POST /transactions/stock-out → returns transaction_id → auto-polls until terminal.
    */
   async stockOut(opts: StockOutOptions, apiOpts?: RequestOptions): Promise<TransactionResult> {
+    StockOutOptionsSchema.parse(opts);
     const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
     const txId = await this.postTransaction(
       CSDL_DUOC_ENDPOINTS.STOCK_OUT,
@@ -90,6 +97,7 @@ export class InventoryClient {
     opts: StockTakingOptions,
     apiOpts?: RequestOptions,
   ): Promise<TransactionResult> {
+    StockTakingOptionsSchema.parse(opts);
     const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
     const txId = await this.postTransaction(
       CSDL_DUOC_ENDPOINTS.STOCK_TAKING,

@@ -85,3 +85,95 @@ export const TransactionResponseSchema = z
     status: z.string().optional(),
   })
   .passthrough();
+
+export const ManufacturerInfoSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().optional(),
+});
+
+export const StockItemSchema = z.object({
+  drugId: z.string().min(1, 'drugId is required'),
+  unitId: z.string().min(1, 'unitId is required'),
+  quantity: z.number().positive('quantity must be positive'),
+  batchNo: z.string().optional(),
+  expiryDate: z.string().optional(),
+  price: z.number().nonnegative('price must be non-negative').optional(),
+  manufacturer: ManufacturerInfoSchema.optional(),
+  gtin: z.string().optional(),
+});
+
+export const StockInOptionsSchema = z.object({
+  items: z.array(StockItemSchema).min(1, 'items array cannot be empty'),
+  reason: z.enum(['supplier', 'return', 'transfer-in', 'manufactured', 'opening-balance', 'imported']),
+  referenceNumber: z.string().optional(),
+  transactionDate: z.string().optional(),
+  note: z.string().optional(),
+  supplierId: z.string().optional(),
+  sourceStoreId: z.string().optional(),
+  sourceWarehouseId: z.string().optional(),
+  targetStoreId: z.string().optional(),
+  targetWarehouseId: z.string().optional(),
+}).refine(data => {
+  if (data.reason === 'supplier' && !data.supplierId) {
+    return false;
+  }
+  return true;
+}, {
+  message: "supplierId is required when reason is 'supplier'",
+  path: ['supplierId']
+}).refine(data => {
+  if (data.reason === 'transfer-in' && (!data.sourceStoreId || !data.targetStoreId)) {
+    return false;
+  }
+  return true;
+}, {
+  message: "sourceStoreId and targetStoreId are required when reason is 'transfer-in'",
+  path: ['sourceStoreId']
+});
+
+export const StockOutOptionsSchema = z.object({
+  items: z.array(StockItemSchema).min(1, 'items array cannot be empty'),
+  reason: z.enum(['sale-retail', 'return', 'transfer-out', 'destroy', 'other']),
+  referenceNumber: z.string().optional(),
+  transactionDate: z.string().optional(),
+  note: z.string().optional(),
+  supplierId: z.string().optional(),
+  sourceStoreId: z.string().optional(),
+  sourceWarehouseId: z.string().optional(),
+  targetStoreId: z.string().optional(),
+  targetWarehouseId: z.string().optional(),
+}).refine(data => {
+  if (data.reason === 'return' && !data.supplierId) {
+    return false;
+  }
+  return true;
+}, {
+  message: "supplierId is required when reason is 'return'",
+  path: ['supplierId']
+}).refine(data => {
+  if (data.reason === 'transfer-out' && (!data.sourceStoreId || !data.targetStoreId)) {
+    return false;
+  }
+  return true;
+}, {
+  message: "sourceStoreId and targetStoreId are required when reason is 'transfer-out'",
+  path: ['sourceStoreId']
+});
+
+export const StockTakingItemSchema = z.object({
+  drugId: z.string().min(1, 'drugId is required'),
+  unitId: z.string().min(1, 'unitId is required'),
+  quantity: z.number().nonnegative('quantity must be non-negative'),
+  batchNo: z.string().optional(),
+  expiryDate: z.string().optional(),
+  price: z.number().nonnegative('price must be non-negative').optional(),
+  systemQuantity: z.number().nonnegative().optional(),
+  actualQuantity: z.number().nonnegative().optional(),
+  manufacturer: ManufacturerInfoSchema.optional(),
+});
+
+export const StockTakingOptionsSchema = z.object({
+  items: z.array(StockTakingItemSchema).min(1, 'items array cannot be empty'),
+  transactionDate: z.string().optional(),
+  note: z.string().optional(),
+});

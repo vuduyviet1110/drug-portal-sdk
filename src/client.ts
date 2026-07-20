@@ -44,6 +44,15 @@ export class DrugPortalClient {
   constructor(config: SDKConfig) {
     this.logger = config.logger ?? new StructuredLogger('DrugPortalSDK');
 
+    if (config.useMock) {
+      if (!config.csdlDuoc) {
+        config.csdlDuoc = { username: 'mock_user', password: 'mock_password' };
+      }
+      if (!config.qd228) {
+        config.qd228 = { appName: 'mock_app', appKey: 'mock_key' };
+      }
+    }
+
     // ─── CSDL Dược (QĐ 522) ───────────────────────────────────────
 
     const csdlDuocBaseUrl = resolveCsdlDuocBaseUrl(config);
@@ -115,10 +124,114 @@ export class DrugPortalClient {
       this.qd228 = new Qd228Client(qd228Http, this.logger);
     }
 
+    if (config.useMock) {
+      this.enableMockMode();
+    }
+
     this.logger.info('DrugPortalClient initialized', {
       environment: config.environment,
       hasCsdlDuoc: !!config.csdlDuoc,
       hasQd228: !!config.qd228,
+      useMock: !!config.useMock,
     });
+  }
+
+  private enableMockMode() {
+    this.logger.info('[Mock Client] Mock mode enabled. Intercepting API calls.');
+
+    this.csdlDuoc.drugs.search = async (keyword: string) => {
+      const mockDrugs = [
+        {
+          id: '1',
+          name: 'Paracetamol 500mg (Mock)',
+          registrationNumber: 'VD-12345-20',
+          baseUnit: 'Viên',
+          source: 'pos' as const,
+        },
+        {
+          id: '2',
+          name: 'Ibuprofen 400mg (Mock)',
+          registrationNumber: 'VD-67890-21',
+          baseUnit: 'Viên',
+          source: 'master' as const,
+        },
+      ];
+      const items = mockDrugs.filter((d) =>
+        d.name.toLowerCase().includes(keyword.toLowerCase()),
+      );
+      return { items, total: items.length };
+    };
+
+    this.csdlDuoc.drugs.getDetail = async (id: string) => {
+      return {
+        id,
+        name: 'Mock Drug Detail',
+        registrationNumber: 'VD-12345-20',
+        packagings: [],
+        activeIngredients: [],
+        conversionRate: 1,
+        raw: {},
+      };
+    };
+
+    this.csdlDuoc.inventory.stockIn = async () => {
+      return {
+        transactionId: 'tx-mock-in-' + Date.now(),
+        status: 'completed',
+        attempts: 1,
+        timedOut: false,
+        raw: { messages: ['Mock synchronization successful'] }
+      };
+    };
+
+    this.csdlDuoc.inventory.stockOut = async () => {
+      return {
+        transactionId: 'tx-mock-out-' + Date.now(),
+        status: 'completed',
+        attempts: 1,
+        timedOut: false,
+        raw: { messages: ['Mock synchronization successful'] }
+      };
+    };
+
+    this.csdlDuoc.inventory.stockTaking = async () => {
+      return {
+        transactionId: 'tx-mock-take-' + Date.now(),
+        status: 'completed',
+        attempts: 1,
+        timedOut: false,
+        raw: { messages: ['Mock synchronization successful'] }
+      };
+    };
+
+    if (this.qd228) {
+      this.qd228.prescriptions.get = async (code: string) => {
+        return {
+          maDonThuoc: code,
+          patientName: 'Nguyen Van A (Mock)',
+          patientBirthDate: '1990-01-01',
+          diagnosis: 'Cảm cúm',
+          doctorName: 'Dr. John Doe',
+          facilityName: 'Bệnh viện Bạch Mai',
+          items: [
+            {
+              drugCode: '1',
+              drugName: 'Paracetamol 500mg (Mock)',
+              unitName: 'Viên',
+              prescribedQuantity: 10,
+              price: 1000,
+            },
+          ],
+          raw: {},
+        };
+      };
+      this.qd228.prescriptions.updateSaleQty = async () => {
+        return {
+          success: true,
+          status: 200,
+          data: {},
+        };
+      };
+    }
   }
 }

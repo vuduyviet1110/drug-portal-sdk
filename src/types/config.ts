@@ -23,6 +23,9 @@ export interface SDKConfig {
   /** 'sandbox' or 'production' — determines API base URLs */
   environment: Environment;
 
+  /** Enable mock mode to run offline without hitting real API endpoints */
+  useMock?: boolean;
+
   /** CSDL Dược (QĐ 522) credentials */
   csdlDuoc?: CsdlDuocConfig;
 
