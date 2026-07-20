@@ -3,7 +3,7 @@ import type { RetryOptions } from './retry.js';
 import { getRetryDelay, shouldRetry } from './retry.js';
 import { generateTraceId } from './logger.js';
 import { maskSecrets, truncateLogBody } from './logging-utils.js';
-import { ProxyAgent, Socks5ProxyAgent } from 'undici';
+import { ProxyAgent, Socks5ProxyAgent, fetch } from 'undici';
 
 /**
  * Authentication provider interface.
