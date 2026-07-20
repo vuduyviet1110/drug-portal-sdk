@@ -18,11 +18,14 @@ We built a professional Next.js + Tailwind CSS clinical dashboard test applicati
 
 ## Features
 
-- ✅ **CSDL Dược QĐ 522**: OAuth login, auto-refresh token, drug catalog search, master data lookups, stock-in/out/taking with polling
-- ✅ **Cổng Đơn Thuốc QĐ 228**: Prescription lookup, sale quantity updates (UC05) with retry
-- ✅ **Robust HTTP**: Retry with exponential backoff (429/5xx), structured logging with trace ID, secret masking
-- ✅ **TypeScript-first**: Full type safety, ESM + CJS + `.d.ts` support
-- ✅ **Node 18+**: Uses native `fetch`, zero external runtime dependencies
+- ✅ **CSDL Dược QĐ 522**: OAuth login, auto-refresh token, drug catalog search, master data lookups, stock-in/out/taking with polling.
+- ✅ **Cổng Đơn Thuốc QĐ 228**: Prescription lookup, sale quantity updates (UC05) with retry.
+- ✅ **Zod Input Validation**: In-built client-side schemas preventing bad API requests before hitting remote servers.
+- ✅ **Offline Mock Mode**: Toggleable offline mock stubs via `useMock` config for local development and testing.
+- ✅ **Advanced Proxy Routing**: Out-of-the-box support for HTTP/HTTPS/SOCKS5 proxies, tailored to work under serverless platforms (Vercel, AWS Lambda) by bypassing Next.js global `fetch` patches.
+- ✅ **Robust HTTP**: Retry with exponential backoff (429/5xx), structured logging with trace ID, secret masking.
+- ✅ **TypeScript-first**: Full type safety, ESM + CJS + `.d.ts` support.
+- ✅ **Node 18+**: Zero external runtime dependencies.
 
 ---
 
@@ -73,25 +76,6 @@ console.log(rx.items); // drug list in prescription
 
 ---
 
-## API Reference
-
-### `DrugPortalClient`
-
-| Method | Description |
-|---|---|
-| `csdlDuoc.drugs.search(keyword)` | Search drugs (POS + fallback master) |
-| `csdlDuoc.drugs.getDetail(drugId)` | Get full drug detail |
-| `csdlDuoc.masterData.getUnits()` | Get unit list |
-| `csdlDuoc.masterData.getRoutes()` | Get route list |
-| `csdlDuoc.inventory.stockIn(opts)` | Submit stock-in + auto-poll |
-| `csdlDuoc.inventory.stockOut(opts)` | Submit stock-out + auto-poll |
-| `csdlDuoc.inventory.stockTaking(opts)` | Submit stock-taking + auto-poll |
-| `csdlDuoc.inventory.pollTransaction(type, id)` | Poll existing transaction |
-| `qd228.prescriptions.get(code)` | Lookup prescription by code |
-| `qd228.prescriptions.updateSaleQty(opts)` | Update prescription sale qty (UC05) |
-
----
-
 ## Configuration
 
 ```typescript
@@ -112,7 +96,9 @@ new DrugPortalClient({
     appKey: string,
   },
 
-  // Advanced
+  // Advanced Configurations
+  useMock?: boolean,           // Enable offline mock mode (runs Zod validation first)
+  proxyUrl?: string,           // Proxy URL (supports SOCKS5 / HTTP / HTTPS)
   csdlDuocBaseUrl?: string,    // override API URL
   nationalRxBaseUrl?: string,  // override QĐ 228 URL
   retry?: {
@@ -124,7 +110,6 @@ new DrugPortalClient({
   onTokenChange?: (token, expiresAt) => void,
   cachedToken?: string,
   cachedTokenExpiresAt?: Date,
-  proxyUrl?: 'http://username:password@ip:port', // Optional proxy
 });
 ```
 
@@ -132,19 +117,62 @@ new DrugPortalClient({
 
 ## Advanced Features
 
-### 1. Bypassing Cloud Firewall Restrictions (Proxy Support)
-Vietnamese regulatory servers (`api-sandbox.csdlduoc.com.vn`, `donthuocquocgia.vn`) often block foreign cloud IP addresses (such as Vercel, AWS, GCP). You can easily route your requests through a Vietnamese proxy server by passing the `proxyUrl` option:
+### 1. In-built Input Validation (Zod)
+All inventory transactions (`stockIn`, `stockOut`, `stockTaking`) are validated locally against Zod schemas *before* making any remote HTTP calls. This captures bad payloads instantly, preventing rate-limiting blocks from CSDL Dược servers.
+
+```typescript
+try {
+  await client.csdlDuoc.inventory.stockIn({
+    items: [{
+      drugId: 'DRUG-001',
+      unitId: 'U-001',
+      quantity: -5, // ❌ Will throw ZodError immediately (quantity must be positive)
+    }],
+    reason: 'supplier'
+  });
+} catch (error) {
+  console.log(error.issues); // Lists exact missing/invalid parameters (e.g. quantity must be positive)
+}
+```
+
+### 2. Offline Mock Mode (`useMock: true`)
+If `useMock: true` is configured, the SDK runs all Zod input validation rules first, but intercepts remote operations and immediately returns mock completed transactions. Excellent for CI/CD runs, offline local development, or fast sandbox prototyping.
+
+```typescript
+const client = new DrugPortalClient({
+  environment: 'sandbox',
+  useMock: true,
+});
+
+// Zod validation runs first, then mock response is returned in <1ms without internet
+const result = await client.csdlDuoc.inventory.stockIn({
+  items: [{ drugId: 'DRUG-001', unitId: 'U-001', quantity: 10 }],
+  reason: 'supplier',
+  supplierId: 'SUPP-001'
+});
+console.log(result.status); // "completed"
+console.log(result.transactionId); // "tx-mock-in-1784525137036"
+```
+
+### 3. Serverless & AWS Firewall Bypassing (Proxy Support)
+Vietnamese regulatory servers (`api-sandbox.csdlduoc.com.vn`, `donthuocquocgia.vn`) block foreign cloud IP addresses (Vercel, AWS Lambda, GCP). The SDK offers robust proxy support (HTTP, HTTPS, and SOCKS5):
 
 ```typescript
 const client = new DrugPortalClient({
   environment: 'production',
-  proxyUrl: 'http://username:password@vietnam-proxy-ip:port', // Optional Vietnamese proxy
+  proxyUrl: 'http://username:password@vietnam-proxy-ip:8080', // HTTP proxy
+  // proxyUrl: 'socks5://vietnam-proxy-ip:1080',             // SOCKS5 proxy
   csdlDuoc: { ... },
 });
 ```
 
-### 2. Token Caching & Persistence Store
-To prevent calling `POST /auth/login` too frequently (which triggers rate-limits), it is recommended to cache and restore the authentication tokens using one of our built-in `TokenStore` adapters:
+#### Why it works on Vercel/Next.js:
+* **Next.js fetch-patch bypass**: Next.js App Router patches `globalThis.fetch` to support Server Components caching, which breaks proxy dispatchers. The SDK bypasses this on-the-fly by dynamically importing and using raw `undici` fetch whenever a `proxyUrl` is configured.
+* **Hybrid Fallback Strategy**: If `proxyUrl` is undefined, the SDK reverts to `globalThis.fetch`. This ensures local mock test environments (like MSW/nock/Vitest) continue to intercept network requests normally without breaking.
+* **Serverless Port Support**: SOCKS5 ports (e.g., `1080`) are often blocked by AWS Lambda firewall rules. Using standard HTTP/HTTPS proxies on common ports (like `80`, `8080`, `3128`) allows requests to route seamlessly on serverless platforms.
+
+### 4. Token Caching & Persistence Store
+To prevent calling `POST /auth/login` too frequently (which triggers rate-limits), cache and restore authentication tokens using one of our built-in `TokenStore` adapters:
 
 ```typescript
 import { DrugPortalClient, FileTokenStore, RedisTokenStore } from '@icare1/drug-portal-sdk';
@@ -171,8 +199,10 @@ const client = new DrugPortalClient({
 });
 ```
 
-### 3. Unit Testing with Mock Client
-To write unit and integration tests for your own application without hitting live API endpoints, you can import and use `MockDrugPortalClient`:
+---
+
+### 5. Unit Testing with Mock Client
+If you want to configure specific custom mocks in-memory, you can import and use `MockDrugPortalClient`:
 
 ```typescript
 import { MockDrugPortalClient } from '@icare1/drug-portal-sdk';
@@ -192,6 +222,25 @@ mockClient.mockDrugs.push({
 const drugs = await mockClient.csdlDuoc.drugs.search('Custom Mock');
 console.log(drugs.items[0].name); // 'Custom Mock Medicine 500mg'
 ```
+
+---
+
+## API Reference
+
+### `DrugPortalClient`
+
+| Method | Description |
+|---|---|
+| `csdlDuoc.drugs.search(keyword)` | Search drugs (POS + fallback master) |
+| `csdlDuoc.drugs.getDetail(drugId)` | Get full drug detail |
+| `csdlDuoc.masterData.getUnits()` | Get unit list |
+| `csdlDuoc.masterData.getRoutes()` | Get route list |
+| `csdlDuoc.inventory.stockIn(opts)` | Submit stock-in + auto-poll |
+| `csdlDuoc.inventory.stockOut(opts)` | Submit stock-out + auto-poll |
+| `csdlDuoc.inventory.stockTaking(opts)` | Submit stock-taking + auto-poll |
+| `csdlDuoc.inventory.pollTransaction(type, id)` | Poll existing transaction |
+| `qd228.prescriptions.get(code)` | Lookup prescription by code |
+| `qd228.prescriptions.updateSaleQty(opts)` | Update prescription sale qty (UC05) |
 
 ---
 
