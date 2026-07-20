@@ -42,16 +42,18 @@ export class InventoryClient {
   private readonly logger: Logger;
   private readonly storeId?: string;
   private readonly warehouseCode?: string;
+  private readonly useMock?: boolean;
 
   constructor(
     http: HttpClient,
     logger: Logger,
-    opts: { storeId?: string; warehouseCode?: string } = {},
+    opts: { storeId?: string; warehouseCode?: string; useMock?: boolean } = {},
   ) {
     this.http = http;
     this.logger = logger;
     this.storeId = opts.storeId;
     this.warehouseCode = opts.warehouseCode;
+    this.useMock = opts.useMock;
   }
 
   /**
@@ -61,6 +63,15 @@ export class InventoryClient {
    */
   async stockIn(opts: StockInOptions, apiOpts?: RequestOptions): Promise<TransactionResult> {
     StockInOptionsSchema.parse(opts);
+    if (this.useMock) {
+      return {
+        transactionId: 'tx-mock-in-' + Date.now(),
+        status: 'completed',
+        attempts: 1,
+        timedOut: false,
+        raw: { messages: ['Mock synchronization successful'] }
+      };
+    }
     const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
     const txId = await this.postTransaction(
       CSDL_DUOC_ENDPOINTS.STOCK_IN,
@@ -78,6 +89,15 @@ export class InventoryClient {
    */
   async stockOut(opts: StockOutOptions, apiOpts?: RequestOptions): Promise<TransactionResult> {
     StockOutOptionsSchema.parse(opts);
+    if (this.useMock) {
+      return {
+        transactionId: 'tx-mock-out-' + Date.now(),
+        status: 'completed',
+        attempts: 1,
+        timedOut: false,
+        raw: { messages: ['Mock synchronization successful'] }
+      };
+    }
     const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
     const txId = await this.postTransaction(
       CSDL_DUOC_ENDPOINTS.STOCK_OUT,
@@ -98,6 +118,15 @@ export class InventoryClient {
     apiOpts?: RequestOptions,
   ): Promise<TransactionResult> {
     StockTakingOptionsSchema.parse(opts);
+    if (this.useMock) {
+      return {
+        transactionId: 'tx-mock-take-' + Date.now(),
+        status: 'completed',
+        attempts: 1,
+        timedOut: false,
+        raw: { messages: ['Mock synchronization successful'] }
+      };
+    }
     const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
     const txId = await this.postTransaction(
       CSDL_DUOC_ENDPOINTS.STOCK_TAKING,

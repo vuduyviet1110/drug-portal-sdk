@@ -102,6 +102,7 @@ export class DrugPortalClient {
     this.csdlDuoc = new CsdlDuocClient(mainHttp!, portalHttp!, this.logger, csdlDuocAuth!, {
       storeId: config.csdlDuoc?.storeId,
       warehouseCode: config.csdlDuoc?.warehouseCode,
+      useMock: config.useMock,
     });
 
     // ─── QĐ 228 (Cổng Đơn Thuốc) ──────────────────────────────────
@@ -174,35 +175,7 @@ export class DrugPortalClient {
       };
     };
 
-    this.csdlDuoc.inventory.stockIn = async () => {
-      return {
-        transactionId: 'tx-mock-in-' + Date.now(),
-        status: 'completed',
-        attempts: 1,
-        timedOut: false,
-        raw: { messages: ['Mock synchronization successful'] }
-      };
-    };
 
-    this.csdlDuoc.inventory.stockOut = async () => {
-      return {
-        transactionId: 'tx-mock-out-' + Date.now(),
-        status: 'completed',
-        attempts: 1,
-        timedOut: false,
-        raw: { messages: ['Mock synchronization successful'] }
-      };
-    };
-
-    this.csdlDuoc.inventory.stockTaking = async () => {
-      return {
-        transactionId: 'tx-mock-take-' + Date.now(),
-        status: 'completed',
-        attempts: 1,
-        timedOut: false,
-        raw: { messages: ['Mock synchronization successful'] }
-      };
-    };
 
     if (this.qd228) {
       this.qd228.prescriptions.get = async (code: string) => {

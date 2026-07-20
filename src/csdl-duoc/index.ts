@@ -8,6 +8,7 @@ export interface CsdlDuocClientOptions {
   baseUrl?: string;
   storeId?: string;
   warehouseCode?: string;
+  useMock?: boolean;
 }
 
 /**
@@ -35,6 +36,7 @@ export class CsdlDuocClient {
     this.inventory = new InventoryClient(http, logger, {
       storeId: opts?.storeId,
       warehouseCode: opts?.warehouseCode,
+      useMock: opts?.useMock,
     });
   }
 }
