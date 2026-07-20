@@ -136,7 +136,8 @@ export class HttpClient {
       const timer = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
-        const resp = await fetch(url, {
+        const fetchFn = this.proxyAgent ? fetch : globalThis.fetch;
+        const resp = await fetchFn(url, {
           method,
           headers,
           body: bodyStr,

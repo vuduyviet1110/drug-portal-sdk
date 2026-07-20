@@ -1,6 +1,6 @@
 {
   "name": "@icare1/drug-portal-sdk",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "TypeScript SDK for Vietnam National Drug Portal APIs (CSDL Dược QĐ 522 & Cổng Đơn Thuốc QĐ 228)",
   "keywords": [
     "drug-portal",
