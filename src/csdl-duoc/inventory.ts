@@ -69,7 +69,7 @@ export class InventoryClient {
         status: 'completed',
         attempts: 1,
         timedOut: false,
-        raw: { messages: ['Mock synchronization successful'] }
+        raw: { messages: ['Mock synchronization successful'] },
       };
     }
     const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
@@ -95,7 +95,7 @@ export class InventoryClient {
         status: 'completed',
         attempts: 1,
         timedOut: false,
-        raw: { messages: ['Mock synchronization successful'] }
+        raw: { messages: ['Mock synchronization successful'] },
       };
     }
     const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };
@@ -124,7 +124,7 @@ export class InventoryClient {
         status: 'completed',
         attempts: 1,
         timedOut: false,
-        raw: { messages: ['Mock synchronization successful'] }
+        raw: { messages: ['Mock synchronization successful'] },
       };
     }
     const resolvedOpts = { traceId: apiOpts?.traceId ?? generateTraceId(), ...apiOpts };

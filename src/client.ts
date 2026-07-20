@@ -157,9 +157,7 @@ export class DrugPortalClient {
           source: 'master' as const,
         },
       ];
-      const items = mockDrugs.filter((d) =>
-        d.name.toLowerCase().includes(keyword.toLowerCase()),
-      );
+      const items = mockDrugs.filter((d) => d.name.toLowerCase().includes(keyword.toLowerCase()));
       return { items, total: items.length };
     };
 
@@ -174,8 +172,6 @@ export class DrugPortalClient {
         raw: {},
       };
     };
-
-
 
     if (this.qd228) {
       this.qd228.prescriptions.get = async (code: string) => {
