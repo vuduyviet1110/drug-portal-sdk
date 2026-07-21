@@ -155,8 +155,9 @@ console.log(result.transactionId); // "tx-mock-in-1784525137036"
 ```
 
 ### 3. Serverless & AWS Firewall Bypassing (Proxy Support)
-Vietnamese regulatory servers (`api-sandbox.csdlduoc.com.vn`, `donthuocquocgia.vn`) block foreign cloud IP addresses (Vercel, AWS Lambda, GCP). The SDK offers robust proxy support (HTTP, HTTPS, and SOCKS5):
+Vietnamese regulatory servers (`api-sandbox.csdlduoc.com.vn`, `donthuocquocgia.vn`) block foreign cloud IP addresses (Vercel, AWS Lambda, GCP). The SDK offers robust proxy support (HTTP, HTTPS, and SOCKS5) along with an **automatic public Vietnam proxy fallback** scraper.
 
+#### Manual Proxy Setup
 ```typescript
 const client = new DrugPortalClient({
   environment: 'production',
@@ -165,6 +166,35 @@ const client = new DrugPortalClient({
   csdlDuoc: { ... },
 });
 ```
+
+#### Automatic Fallback Proxy Scraper
+If you do not have a paid/private Vietnam proxy, the SDK can automatically scan for free public Vietnamese proxies from multiple sources (Geonode, ProxyScrape, Proxifly, Proxy-List), test them in parallel against the target server, and select a working one.
+
+Because free public proxies are highly unstable and serverless environments (like Vercel or AWS Lambda) are stateless, you should persist the resolved proxy in a database (e.g. SQLite, PostgreSQL) to reuse it across serverless requests without scraping again.
+
+```typescript
+const client = new DrugPortalClient({
+  environment: 'production',
+  // 1. Pass the cached proxy if you have one, or leave undefined to trigger auto fallback
+  proxyUrl: cachedProxyInDb || undefined, 
+  
+  // 2. Enable automatic fallback scanning
+  autoFallbackProxy: !cachedProxyInDb,
+
+  // 3. Track scanning and testing progress (e.g. to stream to UI)
+  onProxyProgress: (step, message) => {
+    console.log(`[Proxy] ${step}: ${message}`);
+  },
+
+  // 4. Save the resolved working proxy to a database for reuse
+  onProxyResolved: async (proxyUrl) => {
+    await db.saveResolvedProxy(proxyUrl);
+  },
+  
+  csdlDuoc: { ... },
+});
+```
+* **Self-Healing Proxy Cache**: If the resolved proxy cached in the database fails (e.g., connection timeout or network error), the SDK will automatically clear the cache, fallback to scanning again, and select a fresh proxy on the next retry.
 
 #### Why it works on Vercel/Next.js:
 * **Next.js fetch-patch bypass**: Next.js App Router patches `globalThis.fetch` to support Server Components caching, which breaks proxy dispatchers. The SDK bypasses this on-the-fly by dynamically importing and using raw `undici` fetch whenever a `proxyUrl` is configured.
