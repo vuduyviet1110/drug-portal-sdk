@@ -339,6 +339,7 @@ export class ProxyManager {
   private proxyUrl?: string;
   private autoFallback?: boolean;
   private onProgress?: (step: string, message: string) => void;
+  private onProxyResolved?: (proxyUrl: string) => void | Promise<void>;
   private targetBaseUrl: string;
 
   private resolvedProxyAgent?: ProxyAgent | Socks5ProxyAgent;
@@ -348,11 +349,13 @@ export class ProxyManager {
     proxyUrl?: string;
     autoFallback?: boolean;
     onProgress?: (step: string, message: string) => void;
+    onProxyResolved?: (proxyUrl: string) => void | Promise<void>;
     targetBaseUrl: string;
   }) {
     this.proxyUrl = opts.proxyUrl;
     this.autoFallback = opts.autoFallback;
     this.onProgress = opts.onProgress;
+    this.onProxyResolved = opts.onProxyResolved;
     this.targetBaseUrl = opts.targetBaseUrl;
 
     if (this.proxyUrl && this.proxyUrl !== 'auto') {
@@ -405,6 +408,14 @@ export class ProxyManager {
           this.resolvedProxyAgent = isSocks
             ? new Socks5ProxyAgent(fallbackUrl)
             : new ProxyAgent(fallbackUrl);
+
+          if (this.onProxyResolved) {
+            try {
+              await this.onProxyResolved(fallbackUrl);
+            } catch (err) {
+              // Ignore callback errors
+            }
+          }
           return this.resolvedProxyAgent;
         }
 

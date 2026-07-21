@@ -79,6 +79,12 @@ export interface SDKConfig {
    * Optional callback to track the status of proxy resolution.
    */
   onProxyProgress?: (step: string, message: string) => void;
+
+  /**
+   * Optional callback triggered when a working proxy is resolved (scraped and verified).
+   * Use this to persist the proxy URL (e.g. to a database) to reuse across serverless requests.
+   */
+  onProxyResolved?: (proxyUrl: string) => void | Promise<void>;
 }
 
 /** Resolve the CSDL Dược base URL from config */

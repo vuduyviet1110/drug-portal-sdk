@@ -62,6 +62,7 @@ export class DrugPortalClient {
       proxyUrl: config.proxyUrl,
       autoFallback: config.autoFallbackProxy,
       onProgress: config.onProxyProgress,
+      onProxyResolved: config.onProxyResolved,
       targetBaseUrl: csdlDuocBaseUrl,
     });
 
@@ -126,6 +127,7 @@ export class DrugPortalClient {
         proxyUrl: config.proxyUrl,
         autoFallback: config.autoFallbackProxy,
         onProgress: config.onProxyProgress,
+        onProxyResolved: config.onProxyResolved,
         targetBaseUrl: nationalRxBaseUrl,
       });
 
