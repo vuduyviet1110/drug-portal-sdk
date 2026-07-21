@@ -6,6 +6,7 @@ import { Qd228Client } from './qd228/index.js';
 import { DrugPortalError } from './http/http-client.js';
 import { MockDrugPortalClient } from './testing/mock-client.js';
 import { DrugPortalClient } from './client.js';
+import { clearFallbackProxyCache } from './http/proxy-resolver.js';
 
 export {
   DrugPortalClient,
@@ -16,6 +17,7 @@ export {
   CsdlDuocClient,
   Qd228Client,
   MockDrugPortalClient,
+  clearFallbackProxyCache,
 };
 
 // Re-export all types

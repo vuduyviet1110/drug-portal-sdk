@@ -11,6 +11,7 @@ import { StructuredLogger } from './http/logger.js';
 import type { Logger } from './http/logger.js';
 import { CsdlDuocClient } from './csdl-duoc/index.js';
 import { Qd228Client } from './qd228/index.js';
+import { ProxyManager } from './http/proxy-resolver.js';
 
 /**
  * Main SDK entry point — DrugPortalClient
@@ -57,6 +58,13 @@ export class DrugPortalClient {
 
     const csdlDuocBaseUrl = resolveCsdlDuocBaseUrl(config);
 
+    const csdlDuocProxyManager = new ProxyManager({
+      proxyUrl: config.proxyUrl,
+      autoFallback: config.autoFallbackProxy,
+      onProgress: config.onProxyProgress,
+      targetBaseUrl: csdlDuocBaseUrl,
+    });
+
     let csdlDuocAuth: CsdlDuocAuth | undefined;
     let mainHttp: HttpClient | undefined;
 
@@ -68,6 +76,7 @@ export class DrugPortalClient {
         tokenTtlHours: config.tokenTtlHours,
         onTokenChange: config.onTokenChange,
         proxyUrl: config.proxyUrl,
+        proxyManager: csdlDuocProxyManager,
       });
 
       // Restore cached token if provided
@@ -81,6 +90,7 @@ export class DrugPortalClient {
           logger: this.logger,
           retry: config.retry,
           proxyUrl: config.proxyUrl,
+          proxyManager: csdlDuocProxyManager,
         },
         csdlDuocAuth,
       );
@@ -94,6 +104,7 @@ export class DrugPortalClient {
             logger: this.logger,
             retry: config.retry,
             proxyUrl: config.proxyUrl,
+            proxyManager: csdlDuocProxyManager,
           },
           csdlDuocAuth,
         )
@@ -111,12 +122,20 @@ export class DrugPortalClient {
       const nationalRxBaseUrl = resolveNationalRxBaseUrl(config);
       const qd228Auth = new Qd228Auth(config.qd228, this.logger);
 
+      const qd228ProxyManager = new ProxyManager({
+        proxyUrl: config.proxyUrl,
+        autoFallback: config.autoFallbackProxy,
+        onProgress: config.onProxyProgress,
+        targetBaseUrl: nationalRxBaseUrl,
+      });
+
       const qd228Http = new HttpClient(
         {
           baseUrl: nationalRxBaseUrl,
           logger: this.logger,
           retry: config.retry,
           proxyUrl: config.proxyUrl,
+          proxyManager: qd228ProxyManager,
         },
         qd228Auth,
       );

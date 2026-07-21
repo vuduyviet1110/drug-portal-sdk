@@ -68,6 +68,17 @@ export interface SDKConfig {
    * to bypass firewall restrictions when deployed in cloud environments.
    */
   proxyUrl?: string;
+
+  /**
+   * Automatically detect if direct connection is blocked and try to resolve
+   * a working proxy from a public Vietnamese proxy list.
+   */
+  autoFallbackProxy?: boolean;
+
+  /**
+   * Optional callback to track the status of proxy resolution.
+   */
+  onProxyProgress?: (step: string, message: string) => void;
 }
 
 /** Resolve the CSDL Dược base URL from config */

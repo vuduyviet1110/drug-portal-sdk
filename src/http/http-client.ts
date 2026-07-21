@@ -3,7 +3,9 @@ import type { RetryOptions } from './retry.js';
 import { getRetryDelay, shouldRetry } from './retry.js';
 import { generateTraceId } from './logger.js';
 import { maskSecrets, truncateLogBody } from './logging-utils.js';
-import { ProxyAgent, Socks5ProxyAgent, fetch } from 'undici';
+import { fetch } from 'undici';
+import { ProxyManager } from './proxy-resolver.js';
+
 
 /**
  * Authentication provider interface.
@@ -49,6 +51,8 @@ export interface HttpClientOptions {
   defaultHeaders?: Record<string, string>;
   /** Optional proxy server URL */
   proxyUrl?: string;
+  /** Optional shared proxy manager for dynamic auto fallback proxy resolution */
+  proxyManager?: ProxyManager;
 }
 
 interface RequestInit {
@@ -69,7 +73,7 @@ export class HttpClient {
   private readonly logger: Logger;
   private readonly retryOpts?: RetryOptions;
   private readonly defaultHeaders: Record<string, string>;
-  private readonly proxyAgent?: ProxyAgent | Socks5ProxyAgent;
+  private readonly proxyManager?: ProxyManager;
   private auth?: AuthProvider;
 
   constructor(opts: HttpClientOptions, auth?: AuthProvider) {
@@ -78,14 +82,13 @@ export class HttpClient {
     this.retryOpts = opts.retry;
     this.defaultHeaders = opts.defaultHeaders ?? {};
     this.auth = auth;
-    if (opts.proxyUrl) {
-      const isSocks =
-        opts.proxyUrl.startsWith('socks://') ||
-        opts.proxyUrl.startsWith('socks5://') ||
-        opts.proxyUrl.startsWith('socks4://');
-      this.proxyAgent = isSocks
-        ? new Socks5ProxyAgent(opts.proxyUrl)
-        : new ProxyAgent(opts.proxyUrl);
+    
+    this.proxyManager = opts.proxyManager;
+    if (!this.proxyManager && opts.proxyUrl) {
+      this.proxyManager = new ProxyManager({
+        proxyUrl: opts.proxyUrl,
+        targetBaseUrl: this.baseUrl,
+      });
     }
   }
 
@@ -136,13 +139,14 @@ export class HttpClient {
       const timer = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
-        const fetchFn = this.proxyAgent ? fetch : globalThis.fetch;
+        const agent = this.proxyManager ? await this.proxyManager.getDispatcher() : undefined;
+        const fetchFn = agent ? fetch : globalThis.fetch;
         const resp = await fetchFn(url, {
           method,
           headers,
           body: bodyStr,
           signal: controller.signal,
-          ...(this.proxyAgent ? { dispatcher: this.proxyAgent } : {}),
+          ...(agent ? { dispatcher: agent } : {}),
         } as any);
         clearTimeout(timer);
 

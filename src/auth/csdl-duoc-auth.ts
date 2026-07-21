@@ -7,7 +7,8 @@ import {
   DEFAULT_TOKEN_TTL_HOURS,
   TOKEN_REFRESH_MINUTES,
 } from '../constants.js';
-import { ProxyAgent, Socks5ProxyAgent } from 'undici';
+import { fetch } from 'undici';
+import { ProxyManager } from '../http/proxy-resolver.js';
 
 /**
  * CSDL Dược (QĐ 522) authentication manager.
@@ -25,7 +26,7 @@ export class CsdlDuocAuth implements AuthProvider {
   private readonly logger: Logger;
   private readonly tokenTtlHours: number;
   private readonly onTokenChange?: (token: string, expiresAt: Date) => void;
-  private readonly proxyAgent?: ProxyAgent | Socks5ProxyAgent;
+  private readonly proxyManager?: ProxyManager;
   private state: AuthState | null = null;
   private loginPromise: Promise<void> | null = null;
 
@@ -36,20 +37,19 @@ export class CsdlDuocAuth implements AuthProvider {
     tokenTtlHours?: number;
     onTokenChange?: (token: string, expiresAt: Date) => void;
     proxyUrl?: string;
+    proxyManager?: ProxyManager;
   }) {
     this.config = opts.config;
     this.baseUrl = opts.baseUrl;
     this.logger = opts.logger;
     this.tokenTtlHours = opts.tokenTtlHours ?? DEFAULT_TOKEN_TTL_HOURS;
     this.onTokenChange = opts.onTokenChange;
-    if (opts.proxyUrl) {
-      const isSocks =
-        opts.proxyUrl.startsWith('socks://') ||
-        opts.proxyUrl.startsWith('socks5://') ||
-        opts.proxyUrl.startsWith('socks4://');
-      this.proxyAgent = isSocks
-        ? new Socks5ProxyAgent(opts.proxyUrl)
-        : new ProxyAgent(opts.proxyUrl);
+    this.proxyManager = opts.proxyManager;
+    if (!this.proxyManager && opts.proxyUrl) {
+      this.proxyManager = new ProxyManager({
+        proxyUrl: opts.proxyUrl,
+        targetBaseUrl: this.baseUrl,
+      });
     }
   }
 
@@ -110,11 +110,13 @@ export class CsdlDuocAuth implements AuthProvider {
       const url = `${this.baseUrl}${CSDL_DUOC_ENDPOINTS.AUTH_LOGIN}`;
 
       try {
-        const resp = await fetch(url, {
+        const agent = this.proxyManager ? await this.proxyManager.getDispatcher() : undefined;
+        const fetchFn = agent ? fetch : globalThis.fetch;
+        const resp = await fetchFn(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams(body).toString(),
-          ...(this.proxyAgent ? { dispatcher: this.proxyAgent } : {}),
+          ...(agent ? { dispatcher: agent } : {}),
         } as any);
 
         if (!resp.ok) {
