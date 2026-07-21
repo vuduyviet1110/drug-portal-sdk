@@ -1,0 +1,10 @@
+{
+  "hasCompletedOnboarding": true,
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:20128/v1",
+    "ANTHROPIC_AUTH_TOKEN": "sk_9router",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "ocg/glm-5.2",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "ocg/qwen3.7-max",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "ocg/deepseek-v4-pro"
+  }
+}

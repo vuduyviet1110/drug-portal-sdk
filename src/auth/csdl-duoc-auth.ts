@@ -151,6 +151,9 @@ export class CsdlDuocAuth implements AuthProvider {
         }
       } catch (err) {
         this.logger.error('CSDL Dược login error', { error: (err as Error).message, traceId });
+        if (this.proxyManager) {
+          this.proxyManager.clearResolved();
+        }
         throw err;
       }
     })();

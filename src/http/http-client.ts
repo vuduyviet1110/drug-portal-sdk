@@ -213,6 +213,9 @@ export class HttpClient {
           isAbort;
 
         if (isTransient && attempt < maxRetries) {
+          if (this.proxyManager) {
+            this.proxyManager.clearResolved();
+          }
           // Đứt mạng giữa chừng hoặc quá 30s không nhận được phản hồi (Timeout), cũng sẽ tính toán thời gian delay để thử lại.
           const delay = getRetryDelay(attempt, 0, undefined, this.retryOpts);
           this.logger.warn(
