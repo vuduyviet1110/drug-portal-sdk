@@ -11,12 +11,12 @@ export async function checkDirectConnection(baseUrl: string): Promise<boolean> {
     const targetUrl = new URL(baseUrl).origin;
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 2000);
-    
+
     await fetch(targetUrl, {
       method: 'HEAD',
-      signal: controller.signal
+      signal: controller.signal,
     });
-    
+
     clearTimeout(id);
     return true;
   } catch (err) {
@@ -38,14 +38,12 @@ export async function testProxy(baseUrl: string, proxyUrl: string): Promise<bool
       proxyUrl.startsWith('socks5://') ||
       proxyUrl.startsWith('socks4://');
 
-    const agent = isSocks
-      ? new Socks5ProxyAgent(proxyUrl)
-      : new ProxyAgent(proxyUrl);
+    const agent = isSocks ? new Socks5ProxyAgent(proxyUrl) : new ProxyAgent(proxyUrl);
 
     await fetch(targetUrl, {
       method: 'HEAD',
       signal: controller.signal,
-      dispatcher: agent
+      dispatcher: agent,
     } as any);
 
     clearTimeout(id);
@@ -60,13 +58,19 @@ export async function testProxy(baseUrl: string, proxyUrl: string): Promise<bool
  */
 export async function getAutomaticFallbackProxy(
   baseUrl: string,
-  onProgress?: (step: string, message: string) => void
+  onProgress?: (step: string, message: string) => void,
 ): Promise<string | null> {
   if (cachedFallbackProxy) {
-    onProgress?.('testing_cached_proxy', `Đang kiểm tra lại proxy lưu trong cache: ${cachedFallbackProxy}...`);
+    onProgress?.(
+      'testing_cached_proxy',
+      `Đang kiểm tra lại proxy lưu trong cache: ${cachedFallbackProxy}...`,
+    );
     const works = await testProxy(baseUrl, cachedFallbackProxy);
     if (works) {
-      onProgress?.('reusing_cached_proxy', `Đang sử dụng lại proxy hoạt động tốt từ cache: ${cachedFallbackProxy}`);
+      onProgress?.(
+        'reusing_cached_proxy',
+        `Đang sử dụng lại proxy hoạt động tốt từ cache: ${cachedFallbackProxy}`,
+      );
       return cachedFallbackProxy;
     }
     cachedFallbackProxy = null;
@@ -77,14 +81,19 @@ export async function getAutomaticFallbackProxy(
 
   try {
     onProgress?.('scraping_proxies', 'Đang quét danh sách proxy Việt Nam từ Geonode API...');
-    const res = await fetch('https://proxylist.geonode.com/api/proxy-list?limit=15&page=1&sort_by=lastChecked&sort_type=desc&country=VN&protocols=http%2Chttps%2Csocks5');
+    const res = await fetch(
+      'https://proxylist.geonode.com/api/proxy-list?limit=15&page=1&sort_by=lastChecked&sort_type=desc&country=VN&protocols=http%2Chttps%2Csocks5',
+    );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
+
     const json = (await res.json()) as any;
     const proxies = (json.data || []) as { ip: string; port: string; protocols: string[] }[];
-    
-    onProgress?.('testing_proxies', `Đã quét được ${proxies.length} proxy. Đang kiểm tra kết nối song song...`);
-    
+
+    onProgress?.(
+      'testing_proxies',
+      `Đã quét được ${proxies.length} proxy. Đang kiểm tra kết nối song song...`,
+    );
+
     // Test in parallel to find first working one
     const testPromises = proxies.map(async (p) => {
       const isHttps = p.protocols.includes('https');
@@ -96,15 +105,18 @@ export async function getAutomaticFallbackProxy(
     });
 
     const results = await Promise.all(testPromises);
-    const workingProxy = results.find(url => url !== null);
-    
+    const workingProxy = results.find((url) => url !== null);
+
     if (workingProxy) {
       onProgress?.('proxy_found', `Đã tìm thấy proxy kết nối CSDL Dược ổn định: ${workingProxy}`);
       cachedFallbackProxy = workingProxy;
       return workingProxy;
     }
-    
-    onProgress?.('proxy_not_found', 'Không tìm thấy proxy Việt Nam nào hoạt động ổn định trong danh sách quét.');
+
+    onProgress?.(
+      'proxy_not_found',
+      'Không tìm thấy proxy Việt Nam nào hoạt động ổn định trong danh sách quét.',
+    );
     return null;
   } catch (err: unknown) {
     onProgress?.('proxy_error', `Lỗi khi lấy proxy tự động: ${(err as Error).message}`);
@@ -168,15 +180,24 @@ export class ProxyManager {
     if (!this.resolutionPromise) {
       this.resolutionPromise = (async () => {
         // Step 1: check direct connection
-        this.onProgress?.('check_direct_connection', 'Đang kiểm tra kết nối trực tiếp đến máy chủ...');
+        this.onProgress?.(
+          'check_direct_connection',
+          'Đang kiểm tra kết nối trực tiếp đến máy chủ...',
+        );
         const canConnect = await checkDirectConnection(this.targetBaseUrl);
         if (canConnect) {
-          this.onProgress?.('direct_connection_success', 'Kết nối trực tiếp thành công! Không cần dùng proxy.');
+          this.onProgress?.(
+            'direct_connection_success',
+            'Kết nối trực tiếp thành công! Không cần dùng proxy.',
+          );
           return undefined;
         }
 
         // Step 2: fallback to auto proxy
-        this.onProgress?.('direct_connection_blocked', 'Kết nối trực tiếp bị chặn. Kích hoạt tìm kiếm proxy Việt Nam...');
+        this.onProgress?.(
+          'direct_connection_blocked',
+          'Kết nối trực tiếp bị chặn. Kích hoạt tìm kiếm proxy Việt Nam...',
+        );
         const fallbackUrl = await getAutomaticFallbackProxy(this.targetBaseUrl, this.onProgress);
         if (fallbackUrl) {
           const isSocks =

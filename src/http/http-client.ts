@@ -6,7 +6,6 @@ import { maskSecrets, truncateLogBody } from './logging-utils.js';
 import { fetch } from 'undici';
 import { ProxyManager } from './proxy-resolver.js';
 
-
 /**
  * Authentication provider interface.
  * Each portal (CSDL Dược, QĐ 228) implements this to inject its own auth headers.
@@ -82,7 +81,7 @@ export class HttpClient {
     this.retryOpts = opts.retry;
     this.defaultHeaders = opts.defaultHeaders ?? {};
     this.auth = auth;
-    
+
     this.proxyManager = opts.proxyManager;
     if (!this.proxyManager && opts.proxyUrl) {
       this.proxyManager = new ProxyManager({
