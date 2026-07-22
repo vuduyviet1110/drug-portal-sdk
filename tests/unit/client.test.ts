@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import '../helpers/mock-handlers';
 import { DrugPortalClient } from '../../src/index';
 
@@ -53,5 +53,24 @@ describe('DrugPortalClient initialization', () => {
       csdlDuoc: { username: 'test', password: 'test' },
     });
     expect(client).toBeDefined();
+  });
+
+  it('accepts custom logger and proxyUrl without throwing', () => {
+    const logger = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+    const client = new DrugPortalClient({
+      environment: 'sandbox',
+      csdlDuoc: { username: 'test', password: 'test' },
+      qd228: { appName: 'a', appKey: 'b' },
+      logger,
+      proxyUrl: 'http://127.0.0.1:8080',
+      retry: { maxRetries: 1, baseDelayMs: 10 },
+    });
+    expect(client.csdlDuoc).toBeDefined();
+    expect(logger.info).toHaveBeenCalled();
   });
 });
