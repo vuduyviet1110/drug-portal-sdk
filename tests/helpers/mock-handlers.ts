@@ -103,6 +103,41 @@ const handlers = [
     });
   }),
 
+  // Master countries
+  http.get('*/master/countries', async () => {
+    return HttpResponse.json({
+      items: [
+        { id: 'C-001', name: 'Việt Nam' },
+        { id: 'C-002', name: 'Ấn Độ' },
+      ],
+      total: 2,
+    });
+  }),
+
+  // Master drug groups
+  http.get('*/master/drug-groups', async () => {
+    return HttpResponse.json({
+      items: [{ id: 'G-001', name: 'Giảm đau' }],
+      total: 1,
+    });
+  }),
+
+  // Master manufacturers (API path is /master/manufactures)
+  http.get('*/master/manufactures', async () => {
+    return HttpResponse.json({
+      items: [{ id: 'M-001', name: 'Pharma Corp' }],
+      total: 1,
+    });
+  }),
+
+  // Master active ingredients
+  http.get('*/master/active-ingredients', async () => {
+    return HttpResponse.json({
+      data: [{ id: 'AI-001', name: 'Paracetamol' }],
+      total: 1,
+    });
+  }),
+
   // Stock-in transaction
   http.post('*/transactions/stock-in', async () => {
     return HttpResponse.json({ transaction_id: 'TX-STOCK-IN-001' });
